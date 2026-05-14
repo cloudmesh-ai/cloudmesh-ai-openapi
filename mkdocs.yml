@@ -1,0 +1,15 @@
+site_name: Cloudmesh AI OpenAPI (pdoc test)
+docs_dir: docs
+theme:
+  name: material
+  logo: assets/logo.png
+  favicon: assets/favicon.ico
+
+nav:
+  - Home: index.md
+  - Manual: manual.md
+  - Scikit-Learn Guide: sklearn.md
+  - API Reference: api/index.html
+
+plugins:
+  - search

@@ -16,9 +16,8 @@ from cloudmesh.ai.openapi.function import generator
 from cloudmesh.ai.openapi.function.server import Server
 from cloudmesh.ai.openapi.function.executor import Parameter
 from cloudmesh.ai.openapi.registry.Registry import Registry
-from cloudmesh.ai.openapi.scikitlearn.SklearnGenerator import Sklearngenerator
-from cloudmesh.ai.openapi.scikitlearn.SklearnGeneratorFile import SklearngeneratorFile
 from cloudmesh.ai.openapi.generator.ai_generator import AIGenerator
+from cloudmesh.ai.openapi.generator.manager import Manager, OpenAPIMarkdown
 from cloudmesh.shell.command import PluginCommand
 from cloudmesh.shell.command import command, map_parameters
 
@@ -60,14 +59,11 @@ class OpenapiCommand(PluginCommand):
               openapi register filename NAME
               openapi register delete NAME
               openapi register list [NAME] [--output=OUTPUT]
-              openapi register protocol PROTOCOL
-              openapi test generate [FUNCTION] --filename=FILENAME --yamlfile=YAML
-              openapi TODO merge [SERVICES...] [--dir=DIR] [--verbose]
-              openapi TODO doc FILE --format=(txt|md)[--indent=INDENT]
-              openapi TODO doc [SERVICES...] [--dir=DIR]
-              openapi sklearn FUNCTION MODELTAG
-              openapi sklearnreadfile FUNCTION MODELTAG
-              openapi sklearn upload --filename=FILENAME
+                                              openapi register protocol PROTOCOL
+                                              openapi test generate [FUNCTION] --filename=FILENAME --yamlfile=YAML
+                                              openapi TODO merge [SERVICES...] [--dir=DIR] [--verbose]
+                                              openapi TODO doc FILE --format=(txt|md)[--indent=INDENT]
+                                              openapi TODO doc [SERVICES...] [--dir=DIR]
 
           Arguments:
               FUNCTION  The name for the function or class
@@ -111,12 +107,6 @@ class OpenapiCommand(PluginCommand):
                 Merges tow service specifications into a single servoce
                 TODO: do we have a prototype of this?
 
-
-            openapi sklearn sklearn.linear_model.LogisticRegression
-                Generates the .py file for the Model given for the generator
-
-            openapi sklearnreadfile sklearn.linear_model.LogisticRegression
-            Generates the .py file for the Model given for the generator which supports reading files
 
             openapi generate [FUNCTION] --filename=FILENAME
                                          [--serverurl=SERVERURL]
@@ -200,12 +190,42 @@ class OpenapiCommand(PluginCommand):
             "basic_auth",
             "ai",
             "test",
+            "merge",
+            "doc",
+            "format",
+            "indent",
         )
         arguments.debug = arguments.verbose
 
         # VERBOSE(arguments)
 
-        if arguments.generate:
+        if arguments.merge:
+            m = Manager(debug=arguments.debug)
+            services = arguments.SERVICES or []
+            directory = path_expand(arguments.directory or ".")
+            merged = m.merge(directory, services)
+            print(yaml.dump(merged, default_flow_style=False))
+            return ""
+
+        elif arguments.doc:
+            if arguments.FILE:
+                # Single file documentation
+                converter = OpenAPIMarkdown()
+                indent = int(arguments.indent) if arguments.indent else 1
+                filename = path_expand(arguments.FILE)
+                converter.title(filename, indent=indent)
+                converter.convert_definitions(filename, indent=indent + 1)
+                converter.convert_paths(filename, indent=indent + 1)
+                print(converter.get_text())
+            else:
+                # Multiple services documentation
+                m = Manager(debug=arguments.debug)
+                services = arguments.SERVICES or []
+                directory = path_expand(arguments.directory or ".")
+                print(m.description(directory, services))
+            return ""
+
+        elif arguments.generate:
             if arguments.import_class and arguments.all_functions:
                 Console.error(
                     "Cannot generate openapi with both --import_class and --all_functions"
@@ -543,33 +563,6 @@ class OpenapiCommand(PluginCommand):
             except ConnectionError:
                 Console.error("Server not running")
 
-        elif arguments.sklearn and not arguments.upload:
-
-            try:
-                Sklearngenerator(
-                    input_sklibrary=arguments.FUNCTION, model_tag=arguments.MODELTAG
-                )
-            except Exception as e:
-                print(e)
-
-        elif arguments.sklearnreadfile and not arguments.upload:
-
-            try:
-                SklearngeneratorFile(
-                    input_sklibrary=arguments.FUNCTION, model_tag=arguments.MODELTAG
-                )
-            except Exception as e:
-                print(e)
-
-        # TODO: implement this?
-        elif arguments.sklearn and arguments.upload:
-
-            try:
-                openAPI = generator.Generator()
-                openAPI.fileput()
-
-            except Exception as e:
-                print(e)
 
         """
 

@@ -1,5 +1,8 @@
-import base64
+import hashlib
+import hmac
 import textwrap
+import json
+from pathlib import Path
 
 from shutil import copyfile
 
@@ -10,19 +13,15 @@ from cloudmesh.configuration.Config import Config
 
 class BasicAuth:
     """
-    This class handles writing the components for basic authentication. 
-    It will write to cloudmesh.yaml config file with the user and encoded password
-
-    Each row of .auth_users is username:password formatted. 
-
+    This class handles basic authentication for OpenAPI services.
+    It supports multiple users with hashed passwords stored in a local file.
+    
     https://swagger.io/docs/specification/2-0/authentication/basic-authentication/
     """
     CONFIG_ATTRIBUTE_AUTH = 'cloudmesh.ai.openapi.authentication'
     CONFIG_VALUE_AUTH = 'basic'
-    CONFIG_ATTRIBUTE_USER = 'cloudmesh.ai.openapi.username'
-    CONFIG_ATTRIBUTE_PASSWORD = 'cloudmesh.ai.openapi.password'
     HALT_FLAG = '#### basic_auth functionality added'
-    USERS_FILE = path_expand('~/.cloudmesh/.auth_users')
+    USERS_FILE = Path(path_expand('~/.cloudmesh/.auth_users.json'))
 
     AUTH_FUNC_TEMPLATE = textwrap.dedent("""
     from cloudmesh.ai.openapi.authentication.basic import BasicAuth
@@ -38,14 +37,21 @@ class BasicAuth:
         """
         basic_auth function to be listed as x-basicInfoFunc in generated openapi yaml
         """
-        config = Config()
-        if username == config[cls.CONFIG_ATTRIBUTE_USER]:
-            if cls._decode(config[cls.CONFIG_ATTRIBUTE_PASSWORD]) == password:
-                if username == 'admin':
-                    return {'sub': 'admin', 'scope': 'secret'}
-                else:
-                    return {'sub': 'user1', 'scope': ''}
-
+        try:
+            if not cls.USERS_FILE.exists():
+                return None
+            
+            with open(cls.USERS_FILE, "r") as f:
+                users = json.load(f)
+            
+            if username in users:
+                stored_hash = users[username]['hash']
+                salt = users[username]['salt']
+                if cls._hash_password(password, salt) == stored_hash:
+                    return {'sub': username, 'scope': users[username].get('scope', '')}
+        except Exception as e:
+            Console.error(f"Auth error: {e}")
+            
         return None
 
     @classmethod
@@ -56,26 +62,36 @@ class BasicAuth:
         pass
 
     @classmethod
-    def add_user(cls, user, password):
-        config = Config()
-        config[cls.CONFIG_ATTRIBUTE_AUTH] = cls.CONFIG_VALUE_AUTH
-        config[cls.CONFIG_ATTRIBUTE_USER] = user
-        config[cls.CONFIG_ATTRIBUTE_PASSWORD] = cls._encode(password)
-        config.save()
+    def add_user(cls, user, password, scope=""):
+        """
+        Add a user with a hashed password to the auth file.
+        """
+        import os
+        salt = os.urandom(16).hex()
+        hashed = cls._hash_password(password, salt)
+        
+        users = {}
+        if cls.USERS_FILE.exists():
+            with open(cls.USERS_FILE, "r") as f:
+                try:
+                    users = json.load(f)
+                except json.JSONDecodeError:
+                    pass
+        
+        users[user] = {'hash': hashed, 'salt': salt, 'scope': scope}
+        
+        cls.USERS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(cls.USERS_FILE, "w") as f:
+            json.dump(users, f, indent=4)
+        
+        Console.ok(f"User {user} added successfully")
 
     @classmethod
-    def _decode(cls, b64text):
+    def _hash_password(cls, password, salt):
         """
-        Decode some string with base64 and return the decoded string
+        Hash password using SHA256 and a salt.
         """
-        return base64.b64decode(b64text.encode('ascii')).decode('ascii')
-        
-    @classmethod
-    def _encode(cls, text):
-        """
-        Encode some string with base64 and return the string representation
-        """
-        return base64.b64encode(text.encode('ascii')).decode('ascii')
+        return hmac.new(salt.encode(), password.encode(), hashlib.sha256).hexdigest()
 
     @classmethod
     def write_basic_auth(cls, filename, module_name):

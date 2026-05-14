@@ -1,20 +1,88 @@
-package=openapi
-UNAME=$(shell uname)
-VERSION=`head -1 VERSION`
+######################################################################
+# Cloudmesh OpenAPI Makefile
+######################################################################
 
-ifeq ($(UNAME),Linux)
-    OPEN=gopen
-else
-    OPEN=open
-endif
+# Variables
+PYTHON       := python
+PIP          := $(PYTHON) -m pip
+PACKAGE_NAME := $(shell basename $(CURDIR))
+COMMAND_NAME := cmc
+TWINE        := $(PYTHON) -m twine
+VERSION_FILE := VERSION
+GIT          := git
+PYENVVERSION := $(shell pyenv version-name)
+OPEN         := open
 
-define banner
+.PHONY: help install clean build test reinstall \
+        check tag release test-html test-cov setup-test uninstall-all \
+        tmp-setup view doc doc-real doc-publish pdoc
+
+help:
 	@echo
-	@echo "############################################################"
-	@echo "# $(1) "
-	@echo "############################################################"
-endef
+	@echo "Makefile for the OpenAPI Cloudmesh extension:"
+	@echo
+	@echo "  install       - Install in editable mode for local development"
+	@echo "  reinstall     - Clean and reinstall locally"
+	@echo "  clean         - Remove build artifacts, cache, and test debris"
+	@echo "  build         - Build distributions (sdist and wheel)"
+	@echo "  check         - Build and validate metadata/README"
+	@echo "  test          - Run pytest suite with HTML report"
+	@echo "  test-cov      - Run pytest with coverage report"
+	@echo "  setup-test    - Install test deps"
+	@echo "  tag           - Create a git tag based on current version and push"
+	@echo "  release       - Full Production Cycle: upload + tag"
+	@echo "  doc           - Generate Sphinx documentation"
+	@echo "  doc-real      - Generate real documentation"
+	@echo "  doc-publish   - Publish documentation to gh-pages"
+	@echo "  pdoc          - Generate experimental MkDocs/pdoc documentation"
+	@echo "  view          - View the generated documentation"
+	@echo
 
+# --- DEVELOPMENT & TESTING ---
+
+install:
+	$(PIP) install -e .
+
+requirements:
+	pip-compile --output-file=requirements.txt pyproject.toml
+
+test:
+	$(PYTHON) -m pytest -v tests/
+	for d in ../cloudmesh-ai-*; do echo "--- \$$d ---"; git -C \$$d status -s; done
+
+test-html:
+	$(PYTHON) -m pytest -v --html=.report.html tests/
+	open .report.html
+
+test-cov:
+	pytest --cov=cloudmesh.ai.command.openapi --cov-report=term-missing tests/
+
+setup-test:
+	$(PIP) install pytest pytest-mock pytest-cov pytest-html
+
+# --- BUILD AND VALIDATE ---
+
+build: clean
+	@echo "Building distributions..."
+	$(PYTHON) -m build
+
+check: build
+	@echo "Validating distribution metadata..."
+	$(TWINE) check dist/*
+
+tmp-setup:
+	cd /tmp && pyenv local $$(pyenv global)
+
+tag:
+	@VERSION=$$(cat $(VERSION_FILE)); \
+	echo "Tagging version v$$VERSION..."; \
+	$(GIT) tag -a v$$VERSION -m "Release v$$VERSION"; \
+	$(GIT) push origin v$$VERSION
+
+release: upload tag
+	@echo "Production release and tagging complete."
+
+# --- DOCUMENTATION ---
 
 view:
 	$(OPEN) docs/index.html
@@ -37,120 +105,28 @@ doc-real:
 	cd sphinx; gen_apidoc.sh
 	cp sphinx/sphinx_docs/_build/html/docs
 
-source:
-	cd ../cloudmesh-common; make source
-	$(call banner, "Install cloudmesh-cmd5")
-	pip install -e . -U
-	cms help
+doc-publish: doc
+	@echo "Publishing documentation to gh-pages..."
+	touch docs/.nojekyll
+	git subtree push --prefix docs origin gh-pages --force
 
-requirements:
-	echo "cloudmesh-common" > tmp.txt
-	echo "cloudmesh-cmd5" >> tmp.txt
-	pip-compile setup.py
-	fgrep -v "# via" requirements.txt | fgrep -v "cloudmesh" >> tmp.txt
-	mv tmp.txt requirements.txt
-	git commit -m "update requirements" requirements.txt
-	git push
+pdoc:
+	@echo "Generating experimental pdoc documentation..."
+	cd pdoc && bash gen_docs.sh && echo "Viewing documentation at http://127.0.0.1:8000" && $(OPEN) http://127.0.0.1:8000 && mkdocs serve
+
+# --- CLEANUP & REINSTALL ---
+
+uninstall-all:
+	@echo "Searching for installed cloudmesh-ai packages..."
+	@$(PIP) freeze | grep "cloudmesh-ai" | cut -d'=' -f1 | xargs $(PIP) uninstall -y || echo "No cloudmesh-ai packages found."
 
 clean:
-	$(call banner, "CLEAN")
-	rm -rf dist
-	rm -rf *.zip
-	rm -rf *.egg-info
-	rm -rf *.eggs
-	rm -rf docs/build
-	rm -rf build
-	find . | grep -E "(__pycache__|\.pyc|\.pyo$)" | xargs rm -rf
-	rm -rf .tox
-	rm -f *.whl
+	@echo "Cleaning artifacts and temporary test plugins..."
+	rm -rf build/ dist/ *.egg-info .pytest_cache .coverage .report.html
+	find . -type d -name "__pycache__" -exec rm -rf {} +
+	find . -type f -name "*.pyc" -delete
+	rm -rf tmp/cloudmesh-ai-*
 
-######################################################################
-# PYPI
-######################################################################
-
-
-twine:
-	pip install -U twine
-
-dist:
-	python setup.py sdist bdist_wheel
-	twine check dist/*
-
-patch: clean
-	$(call banner, "patch")
-	bump2version --allow-dirty patch
-	python setup.py sdist bdist_wheel
-	git push origin main --tags
-	twine check dist/*
-	twine upload --repository testpypi  dist/*
-	# $(call banner, "install")
-	# sleep 10
-	# pip install --index-url https://test.pypi.org/simple/ cloudmesh-$(package) -U
-
-minor: clean
-	$(call banner, "minor")
-	bump2version minor --allow-dirty
-	@cat VERSION
-	@echo
-
-release: clean
-	$(call banner, "release")
-	git tag "v$(VERSION)"
-	git push origin main --tags
-	python setup.py sdist bdist_wheel
-	twine check dist/*
-	twine upload --repository pypi dist/*
-	$(call banner, "install")
-	@cat VERSION
-	@echo
-	# sleep 10
-	# pip install -U cloudmesh-common
-
-
-dev:
-	bump2version --new-version "$(VERSION)-dev0" part --allow-dirty
-	bump2version patch --allow-dirty
-	@cat VERSION
-	@echo
-
-reset:
-	bump2version --new-version "4.0.0-dev0" part --allow-dirty
-
-upload:
-	twine check dist/*
-	twine upload dist/*
-
-pip:
-	pip install --index-url https://test.pypi.org/simple/ cloudmesh-$(package) -U
-
-#	    --extra-index-url https://test.pypi.org/simple
-
-log:
-	$(call banner, log)
-	gitchangelog | fgrep -v ":dev:" | fgrep -v ":new:" > ChangeLog
-	git commit -m "chg: dev: Update ChangeLog" ChangeLog
-	git push
-
-######################################################################
-# DOCKER
-######################################################################
-
-image:
-	docker build -t cloudmesh/cmd5:1.0 .
-
-shell:
-	docker run --rm -it cloudmesh/cmd5:1.0  /bin/bash
-
-cms:
-	docker run --rm -it cloudmesh/cmd5:1.0
-
-dockerclean:
-	-docker kill $$(docker ps -q)
-	-docker rm $$(docker ps -a -q)
-	-docker rmi $$(docker images -q)
-
-push:
-	docker push cloudmesh/cmd5:1.0
-
-run:
-	docker run cloudmesh/cmd5:1.0 /bin/sh -c "cd technologies; git pull; make"
+reinstall: uninstall-all clean
+	@echo "Performing fresh install..."
+	$(PIP) install -e .
