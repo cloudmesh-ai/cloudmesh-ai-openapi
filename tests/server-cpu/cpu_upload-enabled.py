@@ -11,9 +11,7 @@ def get_processor_name() -> str:
 
     :return: the name of the processor
     """
-    if platform.system() == "Windows":
-        p = platform.processor()
-    elif platform.system() == "Darwin":
+    if platform.system() == "Darwin":
         command = "/usr/sbin/sysctl -n machdep.cpu.brand_string"
         p = subprocess.check_output(command, shell=True).strip().decode()
     elif platform.system() == "Linux":
