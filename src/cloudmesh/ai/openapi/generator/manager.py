@@ -5,16 +5,30 @@ from typing import List, Dict, Any, Optional
 from cloudmesh.ai.common.io import Console
 
 class OpenAPIMarkdown:
-    """
-    Generates human-readable documentation from OpenAPI specifications.
-    """
+    """Generates human-readable documentation from OpenAPI specifications."""
     def __init__(self):
+        """Initializes the OpenAPIMarkdown object."""
         self.output = []
 
     def _indent(self, text: str, indent: int) -> str:
+        """Indents a string by a specified number of levels.
+
+        Args:
+            text (str): The text to indent.
+            indent (int): The number of indentation levels (2 spaces each).
+
+        Returns:
+            str: The indented text.
+        """
         return "  " * indent + text
 
     def title(self, filename: str, indent: int = 0):
+        """Extracts and appends the title, version, and description from the OpenAPI spec.
+
+        Args:
+            filename (str): Path to the OpenAPI YAML file.
+            indent (int): Indentation level. Defaults to 0.
+        """
         with open(filename, "r") as f:
             spec = yaml.safe_load(f)
         
@@ -28,6 +42,12 @@ class OpenAPIMarkdown:
         self.output.append("\n")
 
     def convert_definitions(self, filename: str, indent: int = 0):
+        """Converts OpenAPI schema definitions into a Markdown list.
+
+        Args:
+            filename (str): Path to the OpenAPI YAML file.
+            indent (int): Indentation level. Defaults to 0.
+        """
         with open(filename, "r") as f:
             spec = yaml.safe_load(f)
         
@@ -47,6 +67,12 @@ class OpenAPIMarkdown:
             self.output.append("")
 
     def convert_paths(self, filename: str, indent: int = 0):
+        """Converts OpenAPI paths and methods into a Markdown list.
+
+        Args:
+            filename (str): Path to the OpenAPI YAML file.
+            indent (int): Indentation level. Defaults to 0.
+        """
         with open(filename, "r") as f:
             spec = yaml.safe_load(f)
         
@@ -64,18 +90,32 @@ class OpenAPIMarkdown:
             self.output.append("")
 
     def get_text(self) -> str:
+        """Returns the accumulated Markdown text.
+
+        Returns:
+            str: The complete Markdown documentation.
+        """
         return "\n".join(self.output)
 
 class Manager:
-    """
-    Manages OpenAPI specifications, including merging and documentation.
-    """
+    """Manages OpenAPI specifications, including merging and documentation."""
     def __init__(self, debug: bool = False):
+        """Initializes the Manager.
+
+        Args:
+            debug (bool): Flag to enable debug logging. Defaults to False.
+        """
         self.debug = debug
 
     def merge(self, directory: str, services: List[str]) -> Dict[str, Any]:
-        """
-        Merges multiple OpenAPI specifications into one.
+        """Merges multiple OpenAPI specifications into one.
+
+        Args:
+            directory (str): Directory containing the OpenAPI YAML files.
+            services (List[str]): List of service names (filenames without extension).
+
+        Returns:
+            Dict[str, Any]: The merged OpenAPI specification as a dictionary.
         """
         merged_spec = {
             "openapi": "3.0.0",
@@ -110,8 +150,14 @@ class Manager:
         return merged_spec
 
     def description(self, directory: str, services: List[str]) -> str:
-        """
-        Generates a combined description for multiple services.
+        """Generates a combined description for multiple services.
+
+        Args:
+            directory (str): Directory containing the OpenAPI YAML files.
+            services (List[str]): List of service names.
+
+        Returns:
+            str: The combined Markdown description.
         """
         full_doc = []
         for service in services:
@@ -125,8 +171,11 @@ class Manager:
         return "\n\n---\n\n".join(full_doc)
 
     def codegen(self, services: List[str], directory: str):
-        """
-        Placeholder for codegen functionality.
+        """Placeholder for codegen functionality.
+
+        Args:
+            services (List[str]): List of services to generate code for.
+            directory (str): Directory containing the specifications.
         """
         Console.info(f"Codegen requested for services: {services} in {directory}")
         # Implementation would go here

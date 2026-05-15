@@ -37,8 +37,17 @@ class OpenapiCommand(PluginCommand):
     # noinspection PyUnusedLocal,PyPep8Naming
     @command
     def do_openapi(self, args, arguments):
-        """
-        ::
+        """Main entry point for the openapi command.
+
+        Args:
+            args: The command line arguments.
+            arguments: The parsed arguments.
+
+        Returns:
+            str: The result of the command execution.
+
+        Usage:
+            ::
 
           Usage:
               openapi generate [FUNCTION] --filename=FILENAME

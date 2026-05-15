@@ -12,11 +12,10 @@ from cloudmesh.ai.common.Shell import Shell
 from cloudmesh.ai.common.config import Config
 
 class BasicAuth:
-    """
-    This class handles basic authentication for OpenAPI services.
+    """Handles basic authentication for OpenAPI services.
+
     It supports multiple users with hashed passwords stored in a local file.
-    
-    https://swagger.io/docs/specification/2-0/authentication/basic-authentication/
+    Reference: https://swagger.io/docs/specification/2-0/authentication/basic-authentication/
     """
     CONFIG_ATTRIBUTE_AUTH = 'cloudmesh.ai.openapi.authentication'
     CONFIG_VALUE_AUTH = 'basic'
@@ -34,8 +33,16 @@ class BasicAuth:
 
     @classmethod
     def basic_auth(cls, username, password, required_scopes=None):
-        """
-        basic_auth function to be listed as x-basicInfoFunc in generated openapi yaml
+        """Basic authentication function to be listed as x-basicInfoFunc in generated OpenAPI YAML.
+
+        Args:
+            username (str): The username to authenticate.
+            password (str): The password to verify.
+            required_scopes (Optional[List[str]]): Optional list of required scopes.
+
+        Returns:
+            Optional[Dict[str, Any]]: A dictionary containing 'sub' and 'scope' if authenticated, 
+                otherwise None.
         """
         try:
             if not cls.USERS_FILE.exists():
@@ -56,15 +63,17 @@ class BasicAuth:
 
     @classmethod
     def reset_users(cls):
-        """
-        DEPRECATED
-        """
+        """DEPRECATED."""
         pass
 
     @classmethod
     def add_user(cls, user, password, scope=""):
-        """
-        Add a user with a hashed password to the auth file.
+        """Add a user with a hashed password to the auth file.
+
+        Args:
+            user (str): The username to add.
+            password (str): The plain-text password to hash and store.
+            scope (str): The scope associated with the user. Defaults to "".
         """
         import os
         salt = os.urandom(16).hex()
@@ -88,16 +97,27 @@ class BasicAuth:
 
     @classmethod
     def _hash_password(cls, password, salt):
-        """
-        Hash password using SHA256 and a salt.
+        """Hash password using SHA256 and a salt.
+
+        Args:
+            password (str): The plain-text password.
+            salt (str): The salt to use for hashing.
+
+        Returns:
+            str: The resulting hex digest of the hashed password.
         """
         return hmac.new(salt.encode(), password.encode(), hashlib.sha256).hexdigest()
 
     @classmethod
     def write_basic_auth(cls, filename, module_name):
-        """
-        Writes the basic auth configuration to a new python file and returns the new module name
-        and new filename
+        """Writes the basic auth configuration to a new python file.
+
+        Args:
+            filename (str): The original python file name.
+            module_name (str): The original module name.
+
+        Returns:
+            Tuple[str, str]: A tuple containing the new module name and the new filename.
         """
         basic_auth_enabled = False
         for line in open(filename):

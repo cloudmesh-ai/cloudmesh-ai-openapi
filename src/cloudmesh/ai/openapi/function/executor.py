@@ -7,38 +7,26 @@ from cloudmesh.ai.common.util import path_expand
 
 
 class Parameter:
-    """
-    To generate a useful output for the variables. Example:
+    """Handles parameters for the OpenAPI function executor.
 
+    Example:
         from cloudmesh.ai.openapi.function.executor import Parameter
         p = Parameter(arguments)
         p.Print()
 
-    Invocation from program
-
+    Invocation from program:
         cd cloudmesh-openapi
         cms openapi generate calculator  \
             --filename=./tests/generator-calculator/calculator.py \
             --all_functions
-
-    Returns
-
-        Cloudmesh OpenAPI Generator:
-
-          File Locations:
-            - Currdir:    .
-            - Directory:  ./tests/generator-calculator
-            - Filename:   ./tests/generator-calculator/calculator.py
-            - YAML:       ./tests/generator-calculator/calculator.yaml
-
-          Yaml File Related:
-            - Function:   calculator
-            - Server url: http://localhost:8080/cloudmesh
-            - Module:     calculator
-
     """
 
     def __init__(self, arguments):
+        """Initializes the Parameter object.
+
+        Args:
+            arguments (dict): A dictionary containing the command line arguments.
+        """
         self.arguments = arguments
         self.filename = None
         self.module_directory = None
@@ -54,6 +42,11 @@ class Parameter:
         pass
 
     def get(self, arguments):
+        """Extracts and validates parameters from the arguments.
+
+        Args:
+            arguments (dict): A dictionary containing the command line arguments.
+        """
         self.cwd = path_expand(os.path.curdir)
         filename = arguments['--filename']
         if filename is None:
@@ -77,6 +70,7 @@ class Parameter:
 
         
     def Print(self):
+        """Prints the current parameter configuration to the console."""
 
         Console.info(textwrap.dedent(f"""
              Cloudmesh OpenAPI Generator:

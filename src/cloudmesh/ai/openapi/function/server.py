@@ -17,15 +17,22 @@ from cloudmesh.ai.openapi.registry.Registry import Registry
 
 
 def dynamic_import(abs_module_path: str, class_name: str) -> Any:
+    """Dynamically imports a class from a given module path.
+
+    Args:
+        abs_module_path (str): The absolute path to the module.
+        class_name (str): The name of the class to import.
+
+    Returns:
+        Any: The imported class object.
+    """
     module_object = import_module(abs_module_path)
     target_class = getattr(module_object, class_name)
     return target_class
 
 
 class Server(object):
-    """
-    This class manages all actions taken to interact with an OpenAPI AI server.
-    """
+    """Manages all actions taken to interact with an OpenAPI AI server."""
 
     def __init__(self,
                  name: Optional[str] = None,
@@ -35,17 +42,16 @@ class Server(object):
                  server: str = "flask",
                  port: int = 8080,
                  debug: bool = True):
-        """
-        Default constructor to initialize Server object
+        """Initializes the Server object.
 
-        :param name:  server name
-        :param spec:  openapi spec yaml file
-        :param directory:  directory for input file
-        :param host:  host ip or dns name to be used to start service.  Default is 127.0.0.1
-        :param server:  type of service to start.  Default is flask.
-        :param port:  port to use for service.  Default is 8080. 
-        :param debug:  flag to turn on debug logging.  Default is true.
-        :return:  server object
+        Args:
+            name (Optional[str]): Server name.
+            spec (Optional[str]): Openapi spec yaml file.
+            directory (Optional[str]): Directory for input file.
+            host (str): Host ip or dns name to be used to start service. Defaults to "127.0.0.1".
+            server (str): Type of service to start. Defaults to "flask".
+            port (int): Port to use for service. Defaults to 8080.
+            debug (bool): Flag to turn on debug logging. Defaults to True.
         """
 
         if spec is None:
@@ -90,12 +96,14 @@ class Server(object):
 
     @staticmethod
     def get_name(name: Optional[str], spec: str) -> str:
-        """
-        Get the name of a server using specification
+        """Get the name of a server using specification.
 
-        :param name:  server name
-        :param spec:  spec file name with fully qualified path
-        :return:  server name
+        Args:
+            name (Optional[str]): Server name.
+            spec (str): Spec file name with fully qualified path.
+
+        Returns:
+            str: The server name.
         """
         if name is None:
             return os.path.basename(spec).replace(".yaml", "")
@@ -147,13 +155,15 @@ class Server(object):
         return ai_metadata
 
     def start(self, name: Optional[str] = None, spec: Optional[str] = None, foreground: bool = False) -> Optional[int]:
-        """
-        Start up an OpenApi server
+        """Start up an OpenApi server.
 
-        :param name:  server name
-        :param spec:  openapi spec yaml file name
-        :param foreground:  flag to run server in foreground.  Default is False.
-        :return: started server PID
+        Args:
+            name (Optional[str]): Server name.
+            spec (Optional[str]): Openapi spec yaml file name.
+            foreground (bool): Flag to run server in foreground. Defaults to False.
+
+        Returns:
+            Optional[int]: The PID of the started server, or None if it failed or is in foreground.
         """
         name = Server.get_name(name, spec)
         for active_server in Server.ps():
@@ -174,11 +184,13 @@ class Server(object):
 
     @staticmethod
     def ps(name: Optional[str] = None) -> List[Dict[str, Any]]:
-        """
-        List all of the actively running servers using PID files.
+        """List all of the actively running servers using PID files.
 
-        :param name:  Optional server name.
-        :return:  list of running servers.
+        Args:
+            name (Optional[str]): Optional server name.
+
+        Returns:
+            List[Dict[str, Any]]: A list of running servers.
         """
         pids = []
         # Scan for .pid files in the current directory and subdirectories
@@ -221,21 +233,23 @@ class Server(object):
 
     @staticmethod
     def list(name: Optional[str] = None) -> List[Dict[str, Any]]:
-        """
-        Lists the servers that have been registered in Registry
+        """Lists the servers that have been registered in Registry.
 
-        :param name:  Optional server name.
-        :return:  list of servers in registry
+        Args:
+            name (Optional[str]): Optional server name.
+
+        Returns:
+            List[Dict[str, Any]]: A list of servers in the registry.
         """
         registry = Registry()
         return registry.list(name)
 
     @staticmethod
     def stop(name: Optional[str] = None) -> None:
-        """
-        Stop a running OpenApi server
+        """Stop a running OpenApi server.
 
-        :param name:  server name
+        Args:
+            name (Optional[str]): Server name.
         """
         if not name:
             Console.error("Server name is required to stop a server")
@@ -268,10 +282,10 @@ class Server(object):
 
 
     def run_os(self) -> int:
-        """
-        Start an openapi server by creating a physical flask script
+        """Start an openapi server by creating a physical flask script.
 
-        :return:  pid for started server
+        Returns:
+            int: The PID for the started server.
         """
         Console.ok("starting server")
 

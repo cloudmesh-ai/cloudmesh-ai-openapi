@@ -4,9 +4,7 @@ from cloudmesh.ai.openapi.registry.RegistryPickle import RegistryPickle
 
 
 class Registry:
-    """
-      This class serves as a wrapper for either Registrypickle or RegistryMongoDatabase
-    """
+    """Wrapper for either RegistryPickle or RegistryMongoDatabase."""
 
     kind = "registry"
 
@@ -30,17 +28,20 @@ class Registry:
     RESGISTRY_CONFIG = "cloudmesh.ai.registry.microservice.default.protocol"
 
     def __init__(self):
-        """
-        Initialize the Registry using the pickle protocol.
-        """
+        """Initializes the Registry using the pickle protocol."""
         Registry.PROTOCOL_NAME = "pickle"
         self.protocol = RegistryPickle()
         Console.ok(f"INIT: Using {Registry.PROTOCOL_NAME} Protocol")
 
     @classmethod
     def protocol(cls, protocol="pickle"):
-        """
-        Force the protocol to pickle.
+        """Force the protocol to pickle.
+
+        Args:
+            protocol (str): The protocol to use. Defaults to "pickle".
+
+        Returns:
+            str: The protocol name.
         """
         cls.PROTOCOL_NAME = "pickle"
         Config().set(cls.RESGISTRY_CONFIG, "pickle")
@@ -48,53 +49,65 @@ class Registry:
 
     # noinspection PyPep8Naming
     def Print(self, data, output=None):
-        """
-        print output in a structured format
+        """Print output in a structured format.
 
-        :param data:  input data to be printed out
-        :param output:  type of structured output
-        :return:  structured output
+        Args:
+            data (Any): Input data to be printed out.
+            output (Optional[str]): Type of structured output.
+
+        Returns:
+            Any: The structured output.
         """
         Console.ok(f"PRINT: Using {Registry.PROTOCOL_NAME} Protocol")
         self.protocol.Print(data, output)
 
     def add(self, name=None, **kwargs):
-        """
-        add to registry
+        """Add an entry to the registry.
 
-        :param name: name to be used for registry entry
-        :param kwargs:  other optional fields to populate in registry
-        :return:  
+        Args:
+            name (Optional[str]): Name to be used for the registry entry.
+            **kwargs: Other optional fields to populate in the registry.
+
+        Returns:
+            Any: The result of the add operation.
         """
         Console.ok(f"ADD: Using {Registry.PROTOCOL_NAME} Protocol")
         return self.protocol.add(name, **kwargs)
 
     def add_form_file(self, filename, **kwargs):
-        """
-        add to registry from file
+        """Add an entry to the registry from a file.
 
-        :param filename: file name including path
-        :return:  entry to be inserted into Registry
+        Args:
+            filename (str): File name including path.
+            **kwargs: Other optional fields to populate in the registry.
+
+        Returns:
+            Any: The entry to be inserted into the Registry.
         """
         Console.ok(f"ADD FROM FILE: Using {Registry.PROTOCOL_NAME} Protocol")
         return self.protocol.add_form_file(filename, **kwargs)
 
     def delete(self, name=None):
-        """
-        delete item from registry
+        """Delete an item from the registry.
 
-        :param name: name of the item in registry
-        :return:  
+        Args:
+            name (Optional[str]): Name of the item in the registry.
+
+        Returns:
+            Any: The result of the delete operation.
         """
         Console.ok(f"DELETE: Using {Registry.PROTOCOL_NAME} Protocol")
         return self.protocol.delete(name)
 
     def list(self, name=None):
-        """
-        list entries in the registry
+        """List entries in the registry.
 
-        :param name:  name of registered server.  If not passed will list all registered servers.
-        :return:  list of registered server(s)
+        Args:
+            name (Optional[str]): Name of the registered server. 
+                If not passed, will list all registered servers.
+
+        Returns:
+            List[Any]: A list of registered server(s).
         """
         Console.ok(f"LIST: Using {Registry.PROTOCOL_NAME} Protocol")
         return self.protocol.list(name)

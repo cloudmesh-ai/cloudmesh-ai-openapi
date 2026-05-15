@@ -10,23 +10,24 @@ import os
 
 
 class ResultCache:
-    """
-    Saves serialized model to local cache and saves metadata about the model to local db
-    """
+    """Saves serialized model to local cache and saves metadata about the model to local db."""
 
     def __init__(self):
+        """Initializes the ResultCache."""
         pass
 
     @DatabaseUpdate()
     def save(self, modelname=None, type="pickle", modelobject=None, **kwargs):
-        """
-        Save model to cache
+        """Save model to cache.
 
-        :param modelname:  the name of the model.  Will be used to name registry entry.
-        :param type:  the type of serialization.  Default is pickle.
-        :param modelobject:  the model object
-        :param kwargs:  any other parameters for registry
-        :return:  none
+        Args:
+            modelname (str, optional): The name of the model. Will be used to name registry entry.
+            type (str): The type of serialization. Defaults to "pickle".
+            modelobject (Any): The model object to be serialized.
+            **kwargs: Any other parameters for the registry.
+
+        Returns:
+            Dict[str, Any]: The registry entry created for the cached model.
         """
 
         # create local cache directory
@@ -61,11 +62,16 @@ class ResultCache:
         return entry
 
     def load(self, name):
-        """
-        Load cached model
+        """Load cached model.
 
-        :param name:  model name or cached file name
-        :return:  unserialized model
+        Args:
+            name (str): Model name or cached file name.
+
+        Returns:
+            Any: The unserialized model object.
+
+        Raises:
+            FileNotFoundError: If no cache entry is found for the given name.
         """
 
         # USER env variable is required by StopWatch
@@ -96,13 +102,15 @@ class ResultCache:
         return deserialized_model
 
     def _make_pickle(self, title, data, path):
-        """
-        Serializes a model and returns the fully qualified path and file name to pickle file
+        """Serializes a model and returns the fully qualified path and file name to pickle file.
 
-        :param title:  pickle file name
-        :param data:  model object
-        :param path:  path to pickle file 
-        :return:  pickle file name
+        Args:
+            title (str): Pickle file name.
+            data (Any): Model object to serialize.
+            path (str): Path to the pickle file.
+
+        Returns:
+            str: The fully qualified path to the pickle file.
         """
 
         file = Path(f"{path}/{title}.pickle")
@@ -112,13 +120,14 @@ class ResultCache:
 
         return str(file)
 
-    # loads and returns a pickled object
     def _load_pickle(self, file):
-        """
-        Loads a pickle file and returns object
+        """Loads a pickle file and returns the object.
 
-        :param file:  pickle file name
-        :return:  unpickled model object
+        Args:
+            file (str): Path to the pickle file.
+
+        Returns:
+            Any: The unpickled model object.
         """
 
         pikd = open(file, "rb")

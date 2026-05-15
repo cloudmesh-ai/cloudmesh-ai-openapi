@@ -12,11 +12,10 @@ VERSION_FILE := VERSION
 GIT          := git
 PYENVVERSION := $(shell pyenv version-name)
 OPEN         := open
-BROWSER      := open -a "DuckDuckGo"
 
 .PHONY: help install clean build test reinstall \
         check tag release test-html test-cov setup-test uninstall-all \
-        tmp-setup view doc doc-real doc-publish pdoc serve watch
+        tmp-setup view doc doc-real doc-publish pdoc
 
 help:
 	@echo
@@ -88,32 +87,15 @@ release: upload tag
 view: 
 	$(OPEN) site/index.html
 
-create: doc
-	$(BROWSER) site/api.html
+create:
+	$(OPEN) site/api.html
 
 watch:
-	@echo "Cleaning up port 8000..."
-	-@lsof -ti:8000 | xargs kill -9
-	@echo "Building site..."
-	$(MAKE) doc
-	@echo "Opening API reference page as file..."
-	@$(BROWSER) "file://$(CURDIR)/site/api.html"
-	@echo "Watching for changes (polling every 2s)..."
-	@touch .last_css_check; \
-	while true; do \
-		if find docs -name "*.md" -o -name "*.css" -newer .last_css_check | grep -q .; then \
-			echo "Change detected, rebuilding..."; \
-			$(MAKE) doc; \
-			sleep 1; \
-			$(BROWSER) "file://$(CURDIR)/site/api.html?v=$(shell date +%s)"; \
-		fi; \
-		touch .last_css_check; \
-		sleep 2; \
-	done
+	find ./docs -type f | make create
 
 
 doc:
-	mkdocs build
+	./.venv-docs/bin/mkdocs build
 	touch docs/.nojekyll
 
 doc-real: doc
@@ -123,12 +105,8 @@ doc-publish: doc
 	../.venv-docs/bin/mkdocs gh-deploy
 
 pdoc:
-	@echo "Building site..."
-	$(MAKE) doc
-	@echo "Serving documentation locally on port 8000..."
-	cd site && $(PYTHON) -m http.server 8000
-
-serve: pdoc
+	@echo "Serving documentation locally..."
+	./.venv-docs/bin/mkdocs serve
 
 # --- CLEANUP & REINSTALL ---
 

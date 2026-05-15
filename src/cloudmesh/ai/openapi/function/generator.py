@@ -87,11 +87,13 @@ class Generator:
                       """)
 
     def parse_type(self, _type):
-        """
-        Function to lookup and output supported OpenApi data type using python data type as input
+        """Look up and output supported OpenApi data type using python data type as input.
 
-        :param _type:  the input data type that will be converted to an openapi compliant data type
-        :return:  Returns openapi compliant data type
+        Args:
+            _type (str or type): The input data type that will be converted to an openapi compliant data type.
+
+        Returns:
+            str: The openapi compliant data type.
         """
 
         parser = {
@@ -116,13 +118,15 @@ class Generator:
         return t
 
     def generate_parameter(self, name, _type, description):
-        """
-        Function to generate a single OpenApi YAML formatted parameter section
+        """Generate a single OpenApi YAML formatted parameter section.
 
-        :param name:   input python function parameter name
-        :param _type:  input python function parameter type
-        :param description:  input python function parameter description
-        :return:  parameter spec section
+        Args:
+            name (str): Input python function parameter name.
+            _type (str or type): Input python function parameter type.
+            description (str): Input python function parameter description.
+
+        Returns:
+            str: The parameter spec section.
         """
 
         # Note: did not use f string approach to populate parameter values in strings due to indentation issues.
@@ -168,13 +172,15 @@ class Generator:
         return spec
 
     def generate_response(self, code, _type, description):
-        """
-        Function to generate a single OpenApi YAML formatted response section
+        """Generate a single OpenApi YAML formatted response section.
 
-        :param code:  openapi response code
-        :param _type:  openapi response type
-        :param description:  openapi response decription
-        :return:  openapi response section spec
+        Args:
+            code (str): Openapi response code.
+            _type (str or type): Openapi response type.
+            description (str): Openapi response description.
+
+        Returns:
+            str: The openapi response section spec.
         """
 
         if type(_type) == str:
@@ -242,12 +248,14 @@ class Generator:
         return spec
 
     def generate_properties(self, attr, _type):
-        """
-        Function to generate a single OpenApi YAML formatted schema properties section
+        """Generate a single OpenApi YAML formatted schema properties section.
 
-        :param attr:  openapi schema property attribute name
-        :param _type:  openapi schema property attribute type
-        :return:  openapi schema property spec
+        Args:
+            attr (str): Openapi schema property attribute name.
+            _type (str or type): Openapi schema property attribute type.
+
+        Returns:
+            str: The openapi schema property spec.
         """
 
         if type(_type) == str:
@@ -261,11 +269,13 @@ class Generator:
         return spec
 
     def generate_schema(self, _class):
-        """
-        Function to generate a single OpenApi YAML formatted schema section using python dataclass as input
+        """Generate a single OpenApi YAML formatted schema section using python dataclass as input.
 
-        :param _class:  python type class object
-        :return:  openapi schema section spec
+        Args:
+            _class (type): Python type class object.
+
+        Returns:
+            str: The openapi schema section spec.
         """
         class_name = _class.__name__
         if not is_dataclass(_class):
@@ -283,12 +293,14 @@ class Generator:
         return spec
 
     def populate_parameters(self, func_obj):
-        """
-        Function that converts all the input parameters of a python function into a single OpenApi YAML formatted
+        """Convert all the input parameters of a python function into a single OpenApi YAML formatted
         parameters section.
 
-        :param func_obj:  python function ojbect
-        :return:  openapi parameters section spec
+        Args:
+            func_obj (callable): Python function object.
+
+        Returns:
+            str: The openapi parameters section spec.
         """
         spec = str()
         description = None
@@ -310,26 +322,28 @@ class Generator:
         return spec
 
     def generate_path(self,
-                      class_name=None,
-                      description=None,
-                      long_description=None,
-                      funcname=None,
-                      parameters=None,
-                      responses=None,
-                      filename=None,
-                      all_function=None):
-        """
-        Function that generates a single OpenApi YAML formatted operation ID section
+                       class_name=None,
+                       description=None,
+                       long_description=None,
+                       funcname=None,
+                       parameters=None,
+                       responses=None,
+                       filename=None,
+                       all_function=None):
+        """Generate a single OpenApi YAML formatted operation ID section.
 
-        :param class_name:  python class name or module name
-        :param description:  python class description
-        :param long_description:  pytyhon class long description
-        :param funcname:  python function name
-        :param parameters:  openapi formatted parameters section spec
-        :param responses:  openapi formatted responses section spec
-        :param filename:  python module file name
-        :param all_function:  all_function flag that means we process all functions in input file
-        :return:  openapi operation id section spec
+        Args:
+            class_name (str, optional): Python class name or module name.
+            description (str, optional): Python class description.
+            long_description (str, optional): Python class long description.
+            funcname (str, optional): Python function name.
+            parameters (str, optional): Openapi formatted parameters section spec.
+            responses (str, optional): Openapi formatted responses section spec.
+            filename (str, optional): Python module file name.
+            all_function (bool, optional): Flag that means we process all functions in input file.
+
+        Returns:
+            str: The openapi operation id section spec.
         """
 
         l_description = long_description \
@@ -366,34 +380,37 @@ class Generator:
         return spec
 
     def generate_openapi_class(self,
-                               class_name=None,
-                               class_description=None,
-                               filename=None,
-                               func_objects=None,
-                               serverurl=None,
-                               outdir=None,
-                               yamlfile=None,
-                               dataclass_list=None,
-                               all_function=False,
-                               enable_upload=False,
-                               basic_auth_enabled=False,
-                               write=True):
-        """
-        This is a main entry point into the module.  This function will generate the full OpenApi YAML formatted
+                                class_name=None,
+                                class_description=None,
+                                filename=None,
+                                func_objects=None,
+                                serverurl=None,
+                                outdir=None,
+                                yamlfile=None,
+                                dataclass_list=None,
+                                all_function=False,
+                                enable_upload=False,
+                                basic_auth_enabled=False,
+                                write=True):
+        """Main entry point into the module. Generates the full OpenApi YAML formatted
         specification for a python class or module with multiple functions.
 
-        :param class_name:  python class name
-        :param class_description:  python class description
-        :param filename:  python module file name
-        :param func_objects:  all function objects in input python file
-        :param serverurl:  url for flask service
-        :param outdir:  output directory where openapi spec yaml will be written
-        :param yamlfile:  file name for openapi spec yaml
-        :param dataclass_list:  list containing all data class objects
-        :param all_function:  flag to process all functions in input python file.  False by default.
-        :param enable_upload:  flag to support file upload function. False by default. 
-        :param write:  flag to write out openapi spec yaml to a file. True by default.
-        :return:  no return but if write flag is set it will write out yaml to file
+        Args:
+            class_name (str, optional): Python class name.
+            class_description (str, optional): Python class description.
+            filename (str, optional): Python module file name.
+            func_objects (dict, optional): All function objects in input python file.
+            serverurl (str, optional): URL for flask service.
+            outdir (str, optional): Output directory where openapi spec yaml will be written.
+            yamlfile (str, optional): File name for openapi spec yaml.
+            dataclass_list (list, optional): List containing all data class objects.
+            all_function (bool, optional): Flag to process all functions in input python file. Defaults to False.
+            enable_upload (bool, optional): Flag to support file upload function. Defaults to False.
+            basic_auth_enabled (bool, optional): Flag to enable basic authentication. Defaults to False.
+            write (bool, optional): Flag to write out openapi spec yaml to a file. Defaults to True.
+
+        Returns:
+            None: No return value, but writes to file if write flag is set.
         """
 
         # Initializing and setting global variables
@@ -514,28 +531,32 @@ class Generator:
         return
 
     def generate_openapi(self,
-                         f=None,
-                         filename=None,
-                         serverurl=None,
-                         outdir=None,
-                         yamlfile=None,
-                         dataclass_list=None,
-                         enable_upload=False,
-                         basic_auth_enabled=False,
-                         write=True):
-        """
-        This is a main entry point into the module.  This function will generate the full OpenApi YAML formatted
+                          f=None,
+                          filename=None,
+                          serverurl=None,
+                          outdir=None,
+                          yamlfile=None,
+                          dataclass_list=None,
+                          enable_upload=False,
+                          basic_auth_enabled=False,
+                          write=True):
+        """Main entry point into the module. Generates the full OpenApi YAML formatted
         specification for a module with one single function.
 
-        :param f:  python function object
-        :param filename:  python module file name
-        :param serverurl:  server url for flask service
-        :param outdir:  output directory where openapi spec yaml will be written to
-        :param yamlfile:  openapi spec yaml file name
-        :param dataclass_list:  list containing all data class objects
-        :param write:  flag to write out openapi spec yaml to a file. True by default.
-        :return:  no return but if write flag is set it will write out yaml to file.
-        """  
+        Args:
+            f (callable, optional): Python function object.
+            filename (str, optional): Python module file name.
+            serverurl (str, optional): Server URL for flask service.
+            outdir (str, optional): Output directory where openapi spec yaml will be written to.
+            yamlfile (str, optional): Openapi spec yaml file name.
+            dataclass_list (list, optional): List containing all data class objects.
+            enable_upload (bool, optional): Flag to support file upload function. Defaults to False.
+            basic_auth_enabled (bool, optional): Flag to enable basic authentication. Defaults to False.
+            write (bool, optional): Flag to write out openapi spec yaml to a file. Defaults to True.
+
+        Returns:
+            None: No return value, but writes to file if write flag is set.
+        """
 
         description = f.__doc__.strip().split("\n")[0]
         version = "1.0"  # TODO:  hard coded for now

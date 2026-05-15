@@ -10,11 +10,15 @@ except ImportError:
     validate_spec = None
 
 class AIGenerator:
-    """
-    This class uses an LLM to generate OpenAPI specifications from Python code.
-    """
+    """Uses an LLM to generate OpenAPI specifications from Python code."""
 
     def __init__(self, config_path: Optional[Path] = None):
+        """Initializes the AIGenerator.
+
+        Args:
+            config_path (Optional[Path]): Path to the configuration YAML file. 
+                Defaults to config.yaml in the parent directory.
+        """
         if config_path is None:
             # Default path relative to this file
             config_path = Path(__file__).parent.parent / "config.yaml"
@@ -32,9 +36,12 @@ class AIGenerator:
             return {}
 
     def _get_few_shot_examples(self) -> str:
-        """
-        Load examples from the examples/ directory to use for few-shot prompting.
+        """Load examples from the examples/ directory to use for few-shot prompting.
+
         Expects pairs of .py and .yaml files with the same base name.
+
+        Returns:
+            str: A formatted string containing the few-shot examples.
         """
         examples_dir = Path(__file__).parent.parent / "examples"
         if not examples_dir.exists():
@@ -53,8 +60,13 @@ class AIGenerator:
         return examples_text if len(py_files) > 0 else ""
 
     def _call_llm(self, prompt: str) -> Optional[str]:
-        """
-        Internal method to handle the LLM API call.
+        """Internal method to handle the LLM API call.
+
+        Args:
+            prompt (str): The prompt to send to the LLM.
+
+        Returns:
+            Optional[str]: The generated OpenAPI YAML content, or None if the call failed.
         """
         endpoint = self.llm_config.get("endpoint")
         model = self.llm_config.get("model")
@@ -104,8 +116,14 @@ class AIGenerator:
             return None
 
     def generate(self, code: str, function_name: Optional[str] = None) -> Optional[str]:
-        """
-        Generates an OpenAPI specification for the given code with a validation loop.
+        """Generates an OpenAPI specification for the given code with a validation loop.
+
+        Args:
+            code (str): The Python source code to analyze.
+            function_name (Optional[str]): The specific function name to focus on.
+
+        Returns:
+            Optional[str]: The validated OpenAPI YAML specification, or None if generation failed.
         """
         prompt_template = self.gen_config.get("prompt_template", "Generate an OpenAPI 3.0 specification for the following Python code:")
         if function_name:

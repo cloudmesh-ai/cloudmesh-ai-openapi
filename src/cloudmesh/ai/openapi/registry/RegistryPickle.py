@@ -4,10 +4,7 @@ from cloudmesh.ai.openapi.registry.PickleDB import PickleDB
 
 
 class RegistryPickle:
-    """
-      This class will help to register service into db.
-      which later use to stop server.
-    """
+    """Helps to register services into the database, which is later used to stop servers."""
     kind = "register"
 
     collection = "local-registry"
@@ -27,33 +24,37 @@ class RegistryPickle:
     }
 
     def load(self, filename="~/.cloudmesh/openapi/registry.p"):
-        """
-        loads the registry content
+        """Loads the registry content.
 
-        :param filename:
-        :return:
+        Args:
+            filename (str): Path to the registry pickle file. Defaults to "~/.cloudmesh/openapi/registry.p".
         """
         self.data = PickleDB(filename=filename)
 
     def clean(self, filename="~/.cloudmesh/openapi/registry.p"):
-        """
-        erases the registry content form the file and keep the file.
-        The data is empty.
+        """Erases the registry content from the file while keeping the file.
 
-        :param filename:
-        :return:
+        The resulting data in the file will be empty.
+
+        Args:
+            filename (str): Path to the registry pickle file. Defaults to "~/.cloudmesh/openapi/registry.p".
+
+        Returns:
+            Any: The result of the clean operation.
         """
         return PickleDB(filename=filename).clean()
 
     # noinspection PyPep8Naming
 
     def Print(self, data, output=None):
-        """
-        print output in a structured format
+        """Print output in a structured format.
 
-        :param data:  input data to be printed out
-        :param output:  type of structured output
-        :return:  structured output
+        Args:
+            data (Any): Input data to be printed out.
+            output (Optional[str]): Type of structured output.
+
+        Returns:
+            Any: The structured output.
         """
 
         if output == "table":
@@ -68,12 +69,14 @@ class RegistryPickle:
 
     @DatabaseUpdate(provider="pickle")
     def add(self, name=None, **kwargs):
-        """
-        add to registry
+        """Add an entry to the registry.
 
-        :param name: name to be used for registry entry
-        :param kwargs:  other optional fields to populate in registry
-        :return:
+        Args:
+            name (Optional[str]): Name to be used for the registry entry.
+            **kwargs: Other optional fields to populate in the registry.
+
+        Returns:
+            Dict[str, Any]: The registry entry created.
         """
         entry = {
             "cm": {
@@ -92,11 +95,14 @@ class RegistryPickle:
         return entry
 
     def add_form_file(self, filename, **kwargs):
-        """
-        add to registry from file
+        """Add an entry to the registry from a file.
 
-        :param filename: file name including path
-        :return:  entry to be inserted into Registry
+        Args:
+            filename (str): File name including path.
+            **kwargs: Other optional fields to populate in the registry.
+
+        Returns:
+            Dict[str, Any]: The entry to be inserted into the Registry.
         """
 
         spec = filename
@@ -109,22 +115,27 @@ class RegistryPickle:
         return entry
 
     def delete(self, name=None):
-        """
-        delete item from registry
+        """Delete an item from the registry.
 
-        :param name: name of the item in registry
-        :return:
+        Args:
+            name (Optional[str]): Name of the item in the registry.
+
+        Returns:
+            Any: The result of the delete operation.
         """
         cm = PickleDB()  # repalce by pickle
         entries = cm.delete(name)
         return entries
 
     def list(self, name=None):
-        """
-        list entries in the registry
+        """List entries in the registry.
 
-        :param name:  name of registered server.  If not passed will list all registered servers.
-        :return:  list of registered server(s)
+        Args:
+            name (Optional[str]): Name of the registered server. 
+                If not passed, will list all registered servers.
+
+        Returns:
+            List[Any]: A list of registered server(s).
         """
         cm = PickleDB()
 
