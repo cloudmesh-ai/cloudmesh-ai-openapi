@@ -31,10 +31,10 @@ help:
 	@echo "  setup-test    - Install test deps"
 	@echo "  tag           - Create a git tag based on current version and push"
 	@echo "  release       - Full Production Cycle: upload + tag"
-	@echo "  doc           - Generate Sphinx documentation"
-	@echo "  doc-real      - Generate real documentation"
+	@echo "  doc           - Generate documentation (pdoc + MkDocs)"
+	@echo "  doc-real      - Generate documentation (pdoc + MkDocs)"
 	@echo "  doc-publish   - Publish documentation to gh-pages"
-	@echo "  pdoc          - Generate experimental MkDocs/pdoc documentation"
+	@echo "  pdoc          - Serve documentation locally"
 	@echo "  view          - View the generated documentation"
 	@echo
 
@@ -85,34 +85,24 @@ release: upload tag
 # --- DOCUMENTATION ---
 
 view:
-	$(OPEN) docs/index.html
+	$(OPEN) site/index.html
 
 doc:
-	pip install sphinx_rtd_theme
-	mkdir -p docs
-	rm -rf sphinx/sphinx-docs/_build/
-	cd sphinx; sh gen_apidocs.sh
-	pandoc README.md -o sphinx/sphinx-docs/README.rst
-	pandoc README-Scikitlearn.md -o sphinx/sphinx-docs/README-Scikitlearn.rst
-	pandoc README.md -o docs/README.rst
-	cd sphinx/sphinx-docs; make html
-	cp -r sphinx/sphinx-docs/_build/html/* docs
-	rm -rf sphinx/sphinx-docs/_build/
+	bash docs/gen_docs.sh
+	mkdocs build -f docs/mkdocs.yml
 	touch docs/.nojekyll
 
-doc-real:
-	mkdir -p docs
-	cd sphinx; gen_apidoc.sh
-	cp sphinx/sphinx_docs/_build/html/docs
+doc-real: doc
 
 doc-publish: doc
 	@echo "Publishing documentation to gh-pages..."
 	touch docs/.nojekyll
-	git subtree push --prefix docs origin gh-pages --force
+	git subtree push --prefix docs origin gh-pages
 
 pdoc:
-	@echo "Generating experimental pdoc documentation..."
-	cd pdoc && bash gen_docs.sh && echo "Viewing documentation at http://127.0.0.1:8000" && $(OPEN) http://127.0.0.1:8000 && mkdocs serve
+	@echo "Serving documentation locally..."
+	bash docs/gen_docs.sh
+	mkdocs serve -f docs/mkdocs.yml
 
 # --- CLEANUP & REINSTALL ---
 

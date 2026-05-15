@@ -110,7 +110,7 @@ The project includes a `Makefile` to streamline development, testing, and docume
 
 ## Command Overview
 
-Detailed usage for all commands is provided in the [MANUAL.md](MANUAL.md) file.
+Detailed usage for all commands is provided in the [Manual](manual.md) file.
 
 | Command | Description |
 | --- | --- |
@@ -124,7 +124,7 @@ Detailed usage for all commands is provided in the [MANUAL.md](MANUAL.md) file.
 
 ## List of Tests
 
-Detailed test cases are available in the `tests/` directory. See [tests/README.md](tests/README.md) for a full summary.
+Detailed test cases are available in the `tests/` directory. See [README-tests.md](README-tests.md) for a full summary.
 
 ## Acknowledgments
 
