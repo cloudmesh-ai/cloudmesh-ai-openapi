@@ -118,6 +118,7 @@ doc:
 
 doc-real: doc
 
+
 publish:
-t@echo "Deploying MkDocs site to GitHub Pages..."
-tmkdocs gh-deploy --clean
+	@echo "Deploying MkDocs site to GitHub Pages..."
+	mkdocs gh-deploy --clean
