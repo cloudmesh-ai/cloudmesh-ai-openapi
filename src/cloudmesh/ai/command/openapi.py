@@ -1,624 +1,142 @@
+import click
+import importlib.util
 import os
 import sys
-import textwrap
-import types
-from dataclasses import is_dataclass
-from importlib import import_module
-from pathlib import Path
-from shutil import copyfile
+from typing import List, Optional
 
 from cloudmesh.ai.common.io import Console
-from cloudmesh.ai.common.debug import VERBOSE
-from cloudmesh.ai.common.util import path_expand
-from cloudmesh.ai.openapi.authentication.basic import BasicAuth
-from cloudmesh.ai.openapi.function import generator
+from cloudmesh.ai.openapi.function.generator import Generator
 from cloudmesh.ai.openapi.function.server import Server
-from cloudmesh.ai.openapi.function.executor import Parameter
-from cloudmesh.ai.openapi.registry.Registry import Registry
-from cloudmesh.ai.openapi.generator.ai_generator import AIGenerator
-from cloudmesh.ai.openapi.generator.manager import Manager, OpenAPIMarkdown
-try:
-    from cloudmesh.shell.command import PluginCommand
-    from cloudmesh.shell.command import command, map_parameters
-except ImportError:
-    class PluginCommand:
-        pass
-    def command(func):
-        return func
-    def map_parameters(args, *params):
-        pass
+from cloudmesh.ai.openapi.exceptions import OpenApiError
 
-# start-stop: osx Andrew
-# start-stop: linux Prateek
+@click.group()
+def openapi():
+    """Cloudmesh AI OpenAPI CLI: Generate and manage OpenAPI servers from Python code."""
+    pass
 
+@openapi.command()
+@click.option('--filename', required=True, help='Path to the Python file containing functions/classes.')
+@click.option('--function', help='Specific function to generate. If omitted, all functions are processed.')
+@click.option('--serverurl', default='http://localhost:8080/cloudmesh', help='Server URL for the OpenAPI spec.')
+@click.option('--outdir', help='Output directory for the YAML file.')
+@click.option('--yamlfile', help='Specific output YAML file path.')
+@click.option('--all_functions', is_flag=True, default=False, help='Generate specs for all functions in the file.')
+@click.option('--enable_upload', is_flag=True, default=False, help='Enable file upload endpoint.')
+@click.option('--basic_auth', is_flag=True, default=False, help='Enable basic authentication.')
+@click.option('--openapi_version', default='3.0.0', help='OpenAPI version (e.g., 3.0.0).')
+@click.option('--api_version', default='1.0', help='API version.')
+def generate(filename, function, serverurl, outdir, yamlfile, all_functions, enable_upload, basic_auth, openapi_version, api_version):
+    """Generate an OpenAPI specification from a Python file."""
+    try:
+        # Load the module dynamically
+        module_name = os.path.basename(filename).split('.')[0]
+        spec = importlib.util.spec_from_file_location(module_name, filename)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
 
-class OpenapiCommand(PluginCommand):
-
-    # noinspection PyUnusedLocal,PyPep8Naming
-    @command
-    def do_openapi(self, args, arguments):
-        """Main entry point for the openapi command.
-
-        Args:
-            args: The command line arguments.
-            arguments: The parsed arguments.
-
-        Returns:
-            str: The result of the command execution.
-
-        Usage:
-            ::
-
-          Usage:
-              openapi generate [FUNCTION] --filename=FILENAME
-                                         [--serverurl=SERVERURL]
-                                         [--yamlfile=YAML]
-                                         [--import_class]
-                                         [--all_functions]
-                                         [--enable_upload]
-                                         [--ai]
-                                         [--verbose]
-                                         [--basic_auth=CREDENTIALS]
-              openapi server start YAML [NAME]
-                              [--directory=DIRECTORY]
-                              [--port=PORT]
-                              [--server=SERVER]
-                              [--host=HOST]
-                              [--verbose]
-                              [--debug]
-                              [--fg]
-                              [--os]
-              openapi server stop NAME
-              openapi server list [NAME] [--output=OUTPUT]
-              openapi server ps [NAME] [--output=OUTPUT]
-              openapi register add NAME ENDPOINT
-              openapi register filename NAME
-              openapi register delete NAME
-              openapi register list [NAME] [--output=OUTPUT]
-                                              openapi register protocol PROTOCOL
-                                              openapi test generate [FUNCTION] --filename=FILENAME --yamlfile=YAML
-                                              openapi TODO merge [SERVICES...] [--dir=DIR] [--verbose]
-                                              openapi TODO doc FILE --format=(txt|md)[--indent=INDENT]
-                                              openapi TODO doc [SERVICES...] [--dir=DIR]
-
-          Arguments:
-              FUNCTION  The name for the function or class
-              YAML      Path to the OpenAPI specification file for test generation
-              MODELTAG  The arbirtary name choosen by the user to store the Sklearn trained model as Pickle object
-              FILENAME  Path to python file containing the function or class
-              SERVERURL OpenAPI server URL Default: https://localhost:8080/cloudmesh
-              YAML      Path to yaml file that will contain OpenAPI spec. Default: FILENAME with .py replaced by .yaml
-              DIR       The directory of the specifications
-              FILE      The specification
-
-          Options:
-              --import_class         FUNCTION is a required class name instead of an optional function name
-              --all_functions        Generate OpenAPI spec for all functions in FILENAME
-              --debug                Use the server in debug mode
-              --verbose              Specifies to run in debug mode
-                                     [default: False]
-              --port=PORT            The port for the server [default: 8080]
-              --directory=DIRECTORY  The directory in which the server is run
-              --server=SERVER        The server [default: flask]
-              --output=OUTPUT        The outputformat, table, csv, yaml, json
-                                     [default: table]
-              --ai                   Use AI to generate the OpenAPI specification
-              --srcdir=SRCDIR        The directory of the specifications
-              --destdir=DESTDIR      The directory where the generated code
-                                     is placed
-
-          Description:
-            This command does some useful things.
-
-            openapi TODO doc FILE --format=(txt|md|rst) [--indent=INDENT]
-                Sometimes it is useful to generate teh openaopi documentation
-                in another format. We provide fucntionality to generate the
-                documentation from the yaml file in a different formt.
-
-            openapi TODO doc --format=(txt|md|rst) [SERVICES...]
-                Creates a short documentation from services registered in the
-                registry.
-
-            openapi TODO merge [SERVICES...] [--dir=DIR] [--verbose]
-                Merges tow service specifications into a single servoce
-                TODO: do we have a prototype of this?
-
-
-            openapi generate [FUNCTION] --filename=FILENAME
-                                         [--serverurl=SERVERURL]
-                                         [--yamlfile=YAML]
-                                         [--import_class]
-                                         [--all_functions]
-                                         [--enable_upload]
-                                         [--verbose]
-                                         [--basic_auth=CREDENTIALS]
-                Generates an OpenAPI specification for FUNCTION in FILENAME and
-                writes the result to YAML. Use --import_class to import a class
-                with its associated class methods, or use --all_functions to
-                import all functions in FILENAME. These options ignore functions
-                whose names start with '_'. Use --enable_upload to add file
-                upload functionality to a copy of your python file and the
-                resulting yaml file.
-
-                For optional basic authorization, we support (temporarily) a single user
-                credential. CREDENTIALS should be formatted as follows:
-
-                user:password
-
-                Example: --basic_auth=admin:secret
-
-            openapi server start YAML [NAME]
-                              [--directory=DIRECTORY]
-                              [--port=PORT]
-                              [--server=SERVER]
-                              [--host=HOST]
-                              [--verbose]
-                              [--debug]
-                              [--fg]
-                              [--os]
-                starts an openapi web service using YAML as a specification
-                TODO: directory is hard coded as None, and in server.py it
-                  defaults to the directory where the yaml file lives. Can
-                  we just remove this argument?
-
-            openapi server stop NAME
-                stops the openapi service with the given name
-                TODO: where does this command has to be started from
-
-            openapi server list [NAME] [--output=OUTPUT]
-                Provides a list of all OpenAPI services in the registry
-
-            openapi server ps [NAME] [--output=OUTPUT]
-                list the running openapi service
-
-            openapi register add NAME ENDPOINT
-                Openapi comes with a service registry in which we can register
-                openapi services.
-
-            openapi register filename NAME
-                In case you have a yaml file the openapi service can also be
-                registerd from a yaml file
-
-            openapi register delete NAME
-                Deletes the names service from the registry
-
-            openapi register list [NAME] [--output=OUTPUT]
-                Provides a list of all registerd OpenAPI services
-
-
-        """
-        # print(arguments)
-        map_parameters(
-            arguments,
-            "fg",
-            "os",
-            "output",
-            "verbose",
-            "port",
-            "directory",
-            "yamlfile",
-            "serverurl",
-            "name",
-            "import_class",
-            "all_functions",
-            "enable_upload",
-            "host",
-            "basic_auth",
-            "ai",
-            "test",
-            "merge",
-            "doc",
-            "format",
-            "indent",
-        )
-        arguments.debug = arguments.verbose
-
-        # VERBOSE(arguments)
-
-        if arguments.merge:
-            m = Manager(debug=arguments.debug)
-            services = arguments.SERVICES or []
-            directory = path_expand(arguments.directory or ".")
-            merged = m.merge(directory, services)
-            print(yaml.dump(merged, default_flow_style=False))
-            return ""
-
-        elif arguments.doc:
-            if arguments.FILE:
-                # Single file documentation
-                converter = OpenAPIMarkdown()
-                indent = int(arguments.indent) if arguments.indent else 1
-                filename = path_expand(arguments.FILE)
-                converter.title(filename, indent=indent)
-                converter.convert_definitions(filename, indent=indent + 1)
-                converter.convert_paths(filename, indent=indent + 1)
-                print(converter.get_text())
-            else:
-                # Multiple services documentation
-                m = Manager(debug=arguments.debug)
-                services = arguments.SERVICES or []
-                directory = path_expand(arguments.directory or ".")
-                print(m.description(directory, services))
-            return ""
-
-        elif arguments.generate:
-            if arguments.import_class and arguments.all_functions:
-                Console.error(
-                    "Cannot generate openapi with both --import_class and --all_functions"
-                )
-            if arguments.import_class and not arguments.FUNCTION:
-                Console.error(
-                    "FUNCTION parameter (class name) is required when using --import_class"
-                )
-            try:
-                p = Parameter(arguments)
-                p.Print()
-                filename = p.filename  # ./dir/myfile.py
-                yamlfile = p.yamlfile  # ./dir/myfile.yaml
-                directory = p.yamldirectory  # ./dir
-                function = p.function  # myfunction
-                serverurl = p.serverurl  # http://localhost:8080/cloudmesh/
-                module_name = p.module_name  # myfile
-                basic_auth = p.basic_auth  # user:password
-
-                if arguments.ai:
-                    ai_gen = AIGenerator()
-                    with open(filename, "r") as f:
-                        code = f.read()
-                    openapi_yaml = ai_gen.generate(code, function_name=function)
-                    if openapi_yaml:
-                        with open(yamlfile, "w") as f:
-                            f.write(openapi_yaml)
-                        Console.ok(f"AI generated OpenAPI spec written to {yamlfile}")
-                    else:
-                        Console.error("AI generation failed")
-                    return ""
-
-                # If statement here for mode with basic_auth
-
-                enable_upload = arguments.enable_upload
-                # append the upload function to the end of a copy of the file if not already done
-                if enable_upload:
-                    uploadPython = textwrap.dedent("""
-                        from cloudmesh.ai.openapi.registry.fileoperation import FileOperation
-                        
-                        def upload() -> str:
-                            filename=FileOperation().file_upload()
-                            return filename
-                        
-                        #### upload functionality added
-                        """)
-                    upload_added = False
-                    for line in open(filename):
-                        if "#### upload functionality added" in line:
-                            upload_added = True
-                    if not upload_added:
-                        filename_upload = filename.replace(".py", "_upload-enabled.py")
-                        copyfile(filename, filename_upload)
-                        Console.info(f"copied {filename} to {filename_upload}")
-                        filename = filename_upload
-                        module_name = module_name + "_upload-enabled"
-                        with open(filename, "a") as f:
-                            f.write("\n")
-                            f.write(uploadPython)
-                        Console.info(f"added upload functionality to {filename}")
-
-                if basic_auth:
-                    user, password = basic_auth.split(":")
-                    BasicAuth.reset_users()
-                    BasicAuth.add_user(user, password)
-                    module_name, filename = BasicAuth.write_basic_auth(
-                        filename=filename, module_name=module_name
-                    )
-
-                # Parameter() takes care of putting the filename in the path
-                imported_module = import_module(module_name)
-                dataclass_list = []
-                for attr_name in dir(imported_module):
-                    attr = getattr(imported_module, attr_name)
-                    if is_dataclass(attr):
-                        dataclass_list.append(attr)
-                # not currently supporting multiple functions or all functions
-                # could do comma-separated function/class names
-
-                if enable_upload:
-                    upload_obj = getattr(imported_module, "upload")
-                    setattr(sys.modules[module_name], "upload", upload_obj)
-
-                if arguments.import_class:
-                    class_obj = getattr(imported_module, function)
-                    # do we maybe need to do this here?
-                    # setattr(sys.modules[module_name], function, class_obj)
-                    class_description = class_obj.__doc__.strip().split("\n")[0]
-                    func_objects = {}
-                    for attr_name in dir(class_obj):
-                        attr = getattr(class_obj, attr_name)
-                        if isinstance(attr, types.MethodType) and attr_name[0] != "_":
-                            # are we sure this is right?
-                            # would probably create a valid openapi yaml, but not technically accurate
-                            # module.function may work but it should be module.Class.function
-                            setattr(sys.modules[module_name], attr_name, attr)
-                            func_objects[attr_name] = attr
-                        elif is_dataclass(attr):
-                            dataclass_list.append(attr)
-                    openAPI = generator.Generator()
-                    Console.info("Generating openapi for class: " + class_obj.__name__)
-                    openAPI.generate_openapi_class(
-                        class_name=class_obj.__name__,
-                        class_description=class_description,
-                        filename=filename,
-                        func_objects=func_objects,
-                        serverurl=serverurl,
-                        outdir=directory,
-                        yamlfile=yamlfile,
-                        dataclass_list=dataclass_list,
-                        all_function=False,
-                        enable_upload=enable_upload,
-                        basic_auth_enabled=basic_auth,
-                        write=True,
-                    )
-                elif arguments.all_functions:
-                    func_objects = {}
-                    for attr_name in dir(imported_module):
-                        if (
-                            type(getattr(imported_module, attr_name)).__name__
-                            == "function"
-                            and attr_name[0] != "_"
-                        ):
-                            func_obj = getattr(imported_module, attr_name)
-                            setattr(sys.modules[module_name], attr_name, func_obj)
-                            func_objects[attr_name] = func_obj
-                    openAPI = generator.Generator()
-                    Console.info(
-                        "Generating openapi for all functions in file: " + filename
-                    )
-                    openAPI.generate_openapi_class(
-                        class_name=module_name,
-                        class_description="No description provided",
-                        filename=filename,
-                        func_objects=func_objects,
-                        serverurl=serverurl,
-                        outdir=directory,
-                        yamlfile=yamlfile,
-                        dataclass_list=dataclass_list,
-                        all_function=True,
-                        enable_upload=enable_upload,
-                        basic_auth_enabled=basic_auth,
-                        write=True,
-                    )
-
-                else:
-                    func_obj = getattr(imported_module, function)
-                    setattr(sys.modules[module_name], function, func_obj)
-                    openAPI = generator.Generator()
-                    Console.info(
-                        "Generating openapi for function: " + func_obj.__name__
-                    )
-                    openAPI.generate_openapi(
-                        f=func_obj,
-                        filename=filename,
-                        serverurl=serverurl,
-                        outdir=directory,
-                        yamlfile=yamlfile,
-                        dataclass_list=dataclass_list,
-                        enable_upload=enable_upload,
-                        basic_auth_enabled=basic_auth,
-                        write=True,
-                    )
-
-            except Exception as e:
-                Console.error("Failed to generate openapi yaml")
-                print(e)
-
-        elif arguments.server and arguments.start and arguments.os:
-
-            try:
-                s = Server(
-                    name=arguments.NAME,
-                    spec=path_expand(arguments.YAML),
-                    directory=path_expand(arguments.directory) or arguments.directory,
-                    port=arguments.port,
-                    server=arguments.wsgi,
-                    debug=arguments.debug,
-                )
-
-                pid = s.run_os()
-
-                VERBOSE(arguments, label="Server parameters")
-
-                print(f"Run PID: {pid}")
-
-            except FileNotFoundError:
-
-                Console.error("specification file not found")
-
-            except Exception as e:
-
-                print(e)
-
-        elif arguments.server and arguments.list:
-
-            try:
-                result = Server.list(name=arguments.NAME)
-
-                # BUG: order= nt yet defined
-
-                print(result)
-
-            except ConnectionError:
-                Console.error("Server not running")
-
-        elif arguments.server and arguments.ps:
-
-            try:
-                print()
-                Console.info("Running Cloudmesh OpenAPI Servers")
-                print()
-                result = Server.ps(name=arguments.NAME)
-                print(result)
-
-                print()
-            except ConnectionError:
-                Console.error("Server not running")
-
-        elif arguments.register and arguments.add:
-
-            registry = Registry()
-            result = registry.add(
-                name=arguments.NAME, url=arguments.BASEURL, pid=arguments.PID
+        generator = Generator()
+        
+        if function:
+            # Generate for a single function
+            func_obj = getattr(module, function)
+            generator.generate_openapi(
+                f=func_obj,
+                filename=filename,
+                serverurl=serverurl,
+                outdir=outdir,
+                yamlfile=yamlfile,
+                enable_upload=enable_upload,
+                basic_auth_enabled=basic_auth,
+                openapi_version=openapi_version,
+                api_version=api_version
             )
+            Console.ok(f"Generated OpenAPI spec for function {function}")
+        else:
+            # Generate for all functions in the module
+            func_objects = {name: obj for name, obj in vars(module).items() if callable(obj) and not name.startswith('_')}
+            # Find dataclasses in the module
+            from dataclasses import is_dataclass
+            dataclass_list = [obj for obj in vars(module).values() if isinstance(obj, type) and is_dataclass(obj)]
+            
+            generator.generate_openapi_class(
+                class_name=module_name,
+                filename=filename,
+                func_objects=func_objects,
+                serverurl=serverurl,
+                outdir=outdir,
+                yamlfile=yamlfile,
+                dataclass_list=dataclass_list,
+                all_function=all_functions,
+                enable_upload=enable_upload,
+                basic_auth_enabled=basic_auth,
+                openapi_version=openapi_version,
+                api_version=api_version
+            )
+            Console.ok(f"Generated OpenAPI spec for module {module_name}")
 
-            registry.Print(data=result, output=arguments.output)
+    except OpenApiError as e:
+        Console.error(f"Generation failed: {e}")
+    except Exception as e:
+        Console.error(f"An unexpected error occurred: {e}")
 
-        elif arguments.register and arguments.delete:
+@openapi.command()
+@click.option('--name', help='Server name.')
+@click.option('--spec', required=True, help='Path to the OpenAPI spec YAML file.')
+@click.option('--host', default='127.0.0.1', help='Host IP or DNS name.')
+@click.option('--port', type=int, default=8080, help='Port to use for the service.')
+@click.option('--debug', is_flag=True, default=True, help='Enable debug logging.')
+@click.option('--foreground', is_flag=True, default=False, help='Run server in foreground.')
+def start(name, spec, host, port, debug, foreground):
+    """Start an OpenAPI server."""
+    try:
+        server = Server(name=name, spec=spec, host=host, port=port, debug=debug)
+        pid = server.start(name=name, spec=spec, foreground=foreground)
+        if pid:
+            Console.ok(f"Server started with PID: {pid}")
+        elif foreground:
+            Console.ok("Server running in foreground")
+    except OpenApiError as e:
+        Console.error(f"Failed to start server: {e}")
 
-            registry = Registry()
-            result = registry.delete(name=arguments.NAME)
-            if result == 0:
-                Console.error("Entry could not be found")
-            elif result is not None:
-                Console.ok("Ok. Entry deleted")
-            else:
-                Console.error("Could not delete entry")
+@openapi.command()
+@click.argument('name')
+def stop(name):
+    """Stop a running OpenAPI server by name."""
+    try:
+        Server.stop(name=name)
+        Console.ok(f"Server {name} stopped.")
+    except OpenApiError as e:
+        Console.error(f"Failed to stop server: {e}")
 
-        elif arguments.register and arguments.list:
+@openapi.command()
+@click.option('--name', help='Filter by server name.')
+def ps(name):
+    """List all actively running OpenAPI servers."""
+    servers = Server.ps(name=name)
+    if not servers:
+        Console.info("No running servers found.")
+        return
+    
+    Console.info(f"{'Name':<20} {'PID':<10} {'Spec':<40}")
+    Console.info("-" * 70)
+    for s in servers:
+        Console.info(f"{s['name']:<20} {s['pid']:<10} {s['spec']:<40}")
 
-            registry = Registry()
-            result = registry.list(name=arguments.NAME)
+@openapi.command()
+@click.option('--name', help='Filter by server name.')
+def list(name):
+    """List servers registered in the Registry."""
+    servers = Server.list(name=name)
+    if not servers:
+        Console.info("No registered servers found.")
+        return
+    
+    for s in servers:
+        Console.info(s)
 
-            registry.Print(data=result, output=arguments.output)
+def main():
+    """Main entry point for the OpenAPI CLI."""
+    openapi()
 
-        elif arguments.register and arguments.protocol:
-            result = Registry.protocol(protocol=arguments.PROTOCOL)
-            Console.ok(f"Using Registry Protocol: {result}")
-
-        elif arguments.register and arguments["filename"]:
-
-            registry = Registry()
-            result = [registry.add_form_file(arguments["filename"])]
-
-            registry.Print(data=result, output=arguments.output)
-
-        elif arguments.test and arguments.generate:
-            try:
-                p = Parameter(arguments)
-                filename = p.filename
-                yamlfile = p.yamlfile
-                function = p.function
-
-                if not filename or not yamlfile:
-                    Console.error("--filename and --yamlfile are required for test generation")
-                    return ""
-
-                with open(filename, "r") as f:
-                    code = f.read()
-                with open(yamlfile, "r") as f:
-                    openapi_yaml = f.read()
-
-                ai_test_gen = AITestGenerator()
-                test_code = ai_test_gen.generate_tests(code, openapi_yaml, function_name=function)
-
-                if test_code:
-                    test_dir = Path("tests/ai-generated") / (function or "default")
-                    test_dir.mkdir(parents=True, exist_ok=True)
-                    test_file = test_dir / f"test_{function or 'service'}.py"
-                    with open(test_file, "w") as f:
-                        f.write(test_code)
-                    Console.ok(f"AI generated tests written to {test_file}")
-                else:
-                    Console.error("AI test generation failed")
-
-            except Exception as e:
-                Console.error(f"Failed to generate AI tests: {e}")
-
-        elif arguments.server and arguments.start:
-
-            # VERBOSE(arguments)
-
-            try:
-                s = Server(
-                    name=arguments.NAME,
-                    spec=path_expand(arguments.YAML),
-                    directory=None,
-                    # directory=path_expand(
-                    #    arguments.directory) or arguments.directory,
-                    port=arguments.port,
-                    host=arguments.host,
-                    server=arguments.wsgi,
-                    debug=arguments.debug,
-                )
-
-                pid = s.start(
-                    name=arguments.NAME,
-                    spec=path_expand(arguments.YAML),
-                    foreground=arguments.fg,
-                )
-
-                if pid is None:
-                    pass
-                else:
-                    print(f"Run PID: {pid}")
-
-            except FileNotFoundError:
-
-                Console.error("specification file not found")
-
-            except Exception as e:
-                print(e)
-
-        elif arguments.server and arguments.stop:
-
-            try:
-                print()
-                Console.info("Stopping Cloudmesh OpenAPI Server")
-                print()
-
-                Server.stop(name=arguments.NAME)
-
-                print()
-            except ConnectionError:
-                Console.error("Server not running")
-
-
-        """
-
-        arguments.wsgi = arguments["--server"]
-
-        m = Manager(debug=arguments.debug)
-
-        arguments.dir = path_expand(arguments["--dir"] or ".")
-
-        # pprint(arguments)
-
-        if arguments.list:
-            files = m.get(arguments.dir)
-            print("List of specifications")
-            print(79 * "=")
-            print('\n'.join(files))
-
-        elif arguments.merge:
-            d = m.merge(arguments.dir, arguments.SERVICES)
-            print(yaml.dump(d, default_flow_style=False))
-
-        elif arguments.description:
-            d = m.description(arguments.dir, arguments.SERVICES)
-
-        elif arguments.md:
-
-            converter = OpenAPIMarkdown()
-
-            if arguments["--indent"] is None:
-                indent = 1
-            else:
-                indent = int(arguments["--indent"])
-            filename = arguments["FILE"]
-
-            converter.title(filename, indent=indent)
-            converter.convert_definitions(filename, indent=indent + 1)
-            converter.convert_paths(filename, indent=indent + 1)
-        elif arguments.codegen:
-            m.codegen(arguments.SERVICES, arguments.dir)
-
-
-        return ""
-        """
+if __name__ == "__main__":
+    main()

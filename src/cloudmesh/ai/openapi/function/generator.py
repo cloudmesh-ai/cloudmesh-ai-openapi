@@ -2,658 +2,406 @@ import pathlib
 import textwrap
 import re
 from dataclasses import is_dataclass
+from typing import Any, Dict, List, Optional, Union, get_origin, get_args
 
 import requests
+import yaml
+from openapi_spec_validator import validate_spec
 from cloudmesh.ai.common.io import Console
 from cloudmesh.ai.common.debug import VERBOSE
 from docstring_parser import parse
 
+from cloudmesh.ai.openapi.exceptions import OpenApiGeneratorError, OpenApiValidationError
 
-# TODO: Use latest version of openapi
-# TODO: Use a dynamic way to derive the version of module/class being generated
+def openapi_method(method: str):
+    """Decorator to explicitly set the HTTP method for an OpenAPI endpoint."""
+    def decorator(func):
+        func._openapi_method = method.upper()
+        return func
+    return decorator
+
+def openapi_path_param(param_name: str):
+    """Decorator to mark a parameter as a path parameter."""
+    def decorator(func):
+        if not hasattr(func, '_openapi_path_params'):
+            func._openapi_path_params = []
+        func._openapi_path_params.append(param_name)
+        return func
+    return decorator
 
 class Generator:
+    """Generates OpenAPI specifications from Python functions and dataclasses."""
 
-    basicAuthTemplate = textwrap.dedent("""
-          securitySchemes:
-            basicAuth: # <-- arbitrary name for the security scheme
-              type: http
-              scheme: basic
-              x-basicInfoFunc: {filename}.basic_auth
-        
-        security:
-          - basicAuth: [] # <-- use the same name here
-        """)
-
-    openAPITemplate = textwrap.dedent("""
-        openapi: 3.0.0
-        info:
-          title: {title}
-          description: "{description}"
-          version: "{version}"
-        servers:
-          - url: {serverurl}
-            description: "{description}"
-        paths:
-          /{name}:
-             get:
-              summary: "{description}"
-              description: Optional extended description in CommonMark or HTML.
-              operationId: {filename}.{name}
-              parameters:
-                {parameters}
-              responses:
-                {responses}
-        {upload}
-        {components}
-        """)
-
-    openAPITemplate2 = textwrap.dedent("""
-        openapi: 3.0.0
-        info:
-          title: {title}
-          description: "{description}"
-          version: "{version}"
-        servers:
-          - url: {serverurl}
-            description: "{description}"
-        paths:
-          {paths}
-        {upload}
-        {components}
-        """)
-
-    uploadTemplate = textwrap.dedent("""
-        /upload:
-          post:
-            summary: upload a file
-            operationId: {filename}.upload
-            requestBody:
-              content:
-                multipart/form-data:
-                  schema:
-                    type: object
-                    properties:
-                      upload:
-                        type: string
-                        format: binary
-            responses:
-              '200':
-                description: "OK"
-                content:
-                  text/plain:
-                    schema:
-                      type: string
-                      """)
-
-    def parse_type(self, _type):
-        """Look up and output supported OpenApi data type using python data type as input.
-
-        Args:
-            _type (str or type): The input data type that will be converted to an openapi compliant data type.
-
-        Returns:
-            str: The openapi compliant data type.
-        """
-
-        parser = {
-            'int': 'type: integer',
-            'bool': 'type: boolean',
-            'float': 'type: number',
-            'str': 'type: string',
-            'list': 'type: array',
-            'array': 'type: array',
-            'dict': 'type: object'
+    def __init__(self):
+        # Mapping of basic Python types to OpenAPI types
+        self.type_map = {
+            'int': 'integer',
+            'bool': 'boolean',
+            'float': 'number',
+            'str': 'string',
+            'list': 'array',
+            'array': 'array',
+            'dict': 'object',
+            'object': 'object'
         }
 
+    def parse_type(self, _type: Any) -> Dict[str, Any]:
+        """
+        Look up and output supported OpenApi data type using python data type as input.
+        Handles basic types and typing generics.
+        """
+        if _type is None:
+            return {"type": "string"}
+
+        # Handle string representation of types
+        if isinstance(_type, str):
+            t_name = _type
+        else:
+            t_name = getattr(_type, '__name__', str(_type))
+
+        # Handle Dataclasses
         if is_dataclass(_type):
-            return f'$ref: "#/components/schemas/{_type}'
-        # exits with KeyError if unsupported type is given
+            return {"$ref": f"#/components/schemas/{_type.__name__}"}
 
-        try:
-            t = parser[_type]
-        except KeyError:
-            print(f'unsupported data type supplied for {_type}')
-            raise Exception
-        return t
+        # Handle typing generics (Optional, List, Dict, Union)
+        origin = get_origin(_type)
+        if origin is not None:
+            args = get_args(_type)
+            if origin is Union:
+                # Handle Optional[T] which is Union[T, NoneType]
+                non_none_args = [a for a in args if a is not type(None)]
+                if len(non_none_args) == 1:
+                    return self.parse_type(non_none_args[0])
+                return {"anyOf": [self.parse_type(a) for a in non_none_args]}
+            
+            if origin is list or origin is List:
+                item_type = args[0] if args else str
+                return {
+                    "type": "array",
+                    "items": self.parse_type(item_type)
+                }
+            
+            if origin is dict or origin is Dict:
+                val_type = args[1] if len(args) > 1 else Any
+                return {
+                    "type": "object",
+                    "additionalProperties": self.parse_type(val_type)
+                }
 
-    def generate_parameter(self, name, _type, description):
-        """Generate a single OpenApi YAML formatted parameter section.
+        # Handle basic types
+        # Normalize type name (e.g., 'int' from <class 'int'>)
+        normalized_name = t_name.lower() if isinstance(t_name, str) else str(t_name).lower()
+        
+        # Try to find in map
+        for key, val in self.type_map.items():
+            if key in normalized_name:
+                return {"type": val}
 
-        Args:
-            name (str): Input python function parameter name.
-            _type (str or type): Input python function parameter type.
-            description (str): Input python function parameter description.
+        Console.info(f"Unsupported data type supplied: {_type}, defaulting to string")
+        return {"type": "string"}
 
-        Returns:
-            str: The parameter spec section.
-        """
+    def generate_parameter(self, name: str, _type: Any, description: str, location: str = "query") -> Dict[str, Any]:
+        """Generate a single OpenApi parameter object."""
+        return {
+            "name": name.strip(),
+            "in": location,
+            "description": description.strip() if description else "No description provided",
+            "required": True if location == "path" else False,
+            "schema": self.parse_type(_type)
+        }
 
-        # Note: did not use f string approach to populate parameter values in strings due to indentation issues.
-        #   It seems that f string approach interprets newlines in the parameter values after embedding in string and
-        #   we need it to happen before.
+    def generate_response(self, code: str, _type: Any, description: str) -> Dict[str, Any]:
+        """Generate a single OpenApi response object."""
+        response = {"description": description.strip() if description else "OK"}
+        
+        if _type == "No Response" or _type is None:
+            return response
 
-        if type(_type) == str:
-            _type = self.parse_type(_type)
-        else:
-            _type = self.parse_type(_type.__name__)
+        schema = self.parse_type(_type)
+        content_type = "application/json" if schema.get("type") == "object" or "$ref" in schema else "text/plain"
+        
+        response["content"] = {
+            content_type: {
+                "schema": schema
+            }
+        }
+        return response
 
-        if _type.find('array') != -1:
-            spec = textwrap.dedent("""
-                - in: query
-                  name: {name}
-                  description: "{description}"
-                  schema:
-                    {_type}
-                    items: 
-                      type: number""").format(name=name.strip(),
-                                       description=description.strip(),
-                                       _type=_type.strip())
-        elif _type.find('object') != -1:
-            spec = textwrap.dedent("""
-                - in: query
-                  name: {name}
-                  description: "{description}"
-                  schema:
-                    {_type}
-                    additionalProperties: true""").format(name=name.strip(),
-                                       description=description.strip(),
-                                       _type=_type.strip())
-        else:
-            spec = textwrap.dedent("""
-                - in: query
-                  name: {name}
-                  description: "{description}"
-                  schema:
-                    {_type}""").format(name=name.strip(),
-                                       description=description.strip(),
-                                       _type=_type.strip())
+    def generate_request_body(self, _type: Any) -> Dict[str, Any]:
+        """Generate an OpenAPI request body object for a dataclass."""
+        return {
+            "content": {
+                "application/json": {
+                    "schema": self.parse_type(_type)
+                }
+            }
+        }
 
-        return spec
-
-    def generate_response(self, code, _type, description):
-        """Generate a single OpenApi YAML formatted response section.
-
-        Args:
-            code (str): Openapi response code.
-            _type (str or type): Openapi response type.
-            description (str): Openapi response description.
-
-        Returns:
-            str: The openapi response section spec.
-        """
-
-        if type(_type) == str:
-            # Only retrieve openapi data type for responses that return a value
-            if _type == "No Response":
-                VERBOSE("Processing operation with no response")
-            else:
-                _type = self.parse_type(_type)
-        else:
-            _type = self.parse_type(_type.__name__)
-
-        if _type == "No Response":
-            spec = textwrap.dedent("""
-              '{code}':
-                description: "{description}"
-            """).format(code=code.strip(),
-                        description=description.strip()
-                        )
-        elif not _type.startswith('object'):
-            # int, bool, float, str, list
-            if (_type.find('array') != -1):
-                spec = textwrap.dedent("""
-                  '{code}':
-                    description: "{description}"
-                    content:
-                      text/plain:
-                        schema:
-                          {_type}
-                          items: {{}}""").format(code=code.strip(),
-                                             description=description.strip(),
-                                             _type=_type.strip())
-            else:
-                spec = textwrap.dedent("""
-                  '{code}':
-                    description: "{description}"
-                    content:
-                      text/plain:
-                        schema:
-                          {_type}""").format(code=code.strip(),
-                                             description=description.strip(),
-                                             _type=_type.strip())
-        else:
-            # dict (generic json) or dataclass ($ref)
-            if (_type.find('object') != -1):
-                spec = textwrap.dedent("""
-                  '{code}':
-                    description: "{description}"
-                    content:
-                      application/json:
-                        schema:
-                          {_type}
-                          additionalProperties: True""").format(code=code.strip(),
-                                             description=description.strip(),
-                                             _type=_type.strip())
-            else:
-                spec = textwrap.dedent("""
-                  '{code}':
-                    description: "{description}"
-                    content:
-                      application/json:
-                        schema:
-                          {_type}""").format(code=code.strip(),
-                                             description=description.strip(),
-                                             _type=_type.strip())
-        return spec
-
-    def generate_properties(self, attr, _type):
-        """Generate a single OpenApi YAML formatted schema properties section.
-
-        Args:
-            attr (str): Openapi schema property attribute name.
-            _type (str or type): Openapi schema property attribute type.
-
-        Returns:
-            str: The openapi schema property spec.
-        """
-
-        if type(_type) == str:
-            _type = self.parse_type(_type)
-        else:
-            _type = self.parse_type(_type.__name__)
-
-        spec = textwrap.dedent(f"""
-          {attr}:
-            {_type}""")
-        return spec
-
-    def generate_schema(self, _class):
-        """Generate a single OpenApi YAML formatted schema section using python dataclass as input.
-
-        Args:
-            _class (type): Python type class object.
-
-        Returns:
-            str: The openapi schema section spec.
-        """
-        class_name = _class.__name__
+    def generate_schema(self, _class: type) -> Dict[str, Any]:
+        """Generate an OpenAPI schema from a Python dataclass."""
         if not is_dataclass(_class):
-            raise TypeError(
-                f'{class_name} is not a dataclass. '
-                'Use the @dataclass decorator to define the class properly')
-        properties = str()
+            raise OpenApiGeneratorError(f'{_class.__name__} is not a dataclass.')
+
+        properties = {}
         for attr, _type in _class.__annotations__.items():
-            properties = properties + self.generate_properties(attr, _type)
-        spec = textwrap.dedent(f"""
-          {class_name}:
-            type: object
-            properties:
-              {properties}""")
-        return spec
+            properties[attr] = self.parse_type(_type)
 
-    def populate_parameters(self, func_obj):
-        """Convert all the input parameters of a python function into a single OpenApi YAML formatted
-        parameters section.
+        return {
+            "type": "object",
+            "properties": properties
+        }
 
-        Args:
-            func_obj (callable): Python function object.
-
-        Returns:
-            str: The openapi parameters section spec.
+    def populate_parameters(self, func_obj: callable) -> tuple[List[Dict[str, Any]], Optional[Any]]:
         """
-        spec = str()
-        description = None
-        for parameter, _type in func_obj.__annotations__.items():
-            if parameter == 'return':
-                continue  # dicts are unordered, so use continue
-                # intead of break to be safe
+        Convert Python function parameters into OpenAPI parameters list.
+        Returns a tuple of (parameters, request_body_type).
+        """
+        params = []
+        request_body_type = None
+        docstring = parse(func_obj.__doc__) if func_obj.__doc__ else None
+        
+        # Get annotations
+        annotations = func_obj.__annotations__
+        
+        # Get path parameters from decorator
+        path_params = getattr(func_obj, '_openapi_path_params', [])
+        
+        # Get parameters from function signature
+        import inspect
+        sig = inspect.signature(func_obj)
+        param_names = list(sig.parameters.keys())
+        
+        if param_names:
+            first_param = param_names[0]
+            first_type = annotations.get(first_param)
+            if first_type and is_dataclass(first_type):
+                request_body_type = first_type
+                # Skip this parameter in the parameters list
+                start_idx = 1
             else:
-                docstring = parse(func_obj.__doc__)
-                for param in docstring.params:
-                    if param.arg_name == parameter:
-                        description = textwrap.indent(param.description, ' ' * 15)
-                spec = spec + self.generate_parameter(
-                    parameter,
-                    _type,
-                    description if description else "no description provided in docstring")
-                VERBOSE(spec)
-
-        return spec
-
-    def generate_path(self,
-                       class_name=None,
-                       description=None,
-                       long_description=None,
-                       funcname=None,
-                       parameters=None,
-                       responses=None,
-                       filename=None,
-                       all_function=None):
-        """Generate a single OpenApi YAML formatted operation ID section.
-
-        Args:
-            class_name (str, optional): Python class name or module name.
-            description (str, optional): Python class description.
-            long_description (str, optional): Python class long description.
-            funcname (str, optional): Python function name.
-            parameters (str, optional): Openapi formatted parameters section spec.
-            responses (str, optional): Openapi formatted responses section spec.
-            filename (str, optional): Python module file name.
-            all_function (bool, optional): Flag that means we process all functions in input file.
-
-        Returns:
-            str: The openapi operation id section spec.
-        """
-
-        l_description = long_description \
-            if long_description != None \
-            else 'None (Optional extended description in CommonMark or HTML)'
-
-        if all_function:
-            operationId = f"{filename}.{funcname}"
+                start_idx = 0
         else:
-            operationId = f"{filename}.{class_name}.{funcname}"
+            start_idx = 0
 
-        spec = textwrap.dedent("""
-            /{class_name}/{funcname}:
-               get:
-                summary: "{description}"
-                description: "{l_description}"
-                operationId: {operationId}
-                parameters:
-                  {parameters}
-                responses:
-                  {responses}
-        """).format(
-            description=description,
-            l_description=l_description.strip(),
-            class_name=class_name,
-            funcname=funcname,
-            parameters=parameters.strip(),
-            responses=responses.strip(),
-            operationId=operationId
-        )
-        # remove 'parameters:' section if empty
-        if parameters == '':
-            spec = re.sub('\s*parameters:', '', spec)
-        return spec
+        for i in range(start_idx, len(param_names)):
+            parameter = param_names[i]
+            _type = annotations.get(parameter, Any)
+            
+            description = None
+            if docstring:
+                for p in docstring.params:
+                    if p.arg_name == parameter:
+                        description = p.description
+                        break
+            
+            # Determine location: path or query
+            location = "path" if parameter in path_params else "query"
+            
+            params.append(self.generate_parameter(parameter, _type, description, location))
+        
+        return params, request_body_type
+
+    def get_http_method(self, func_obj: callable) -> str:
+        """Determine the HTTP method for a function."""
+        # 1. Check for explicit decorator
+        if hasattr(func_obj, '_openapi_method'):
+            return func_obj._openapi_method
+        
+        # 2. Check naming conventions
+        name = func_obj.__name__.lower()
+        if name.startswith('post_'):
+            return 'post'
+        if name.startswith('put_'):
+            return 'put'
+        if name.startswith('delete_'):
+            return 'delete'
+        
+        # 3. Default to GET
+        return 'get'
 
     def generate_openapi_class(self,
-                                class_name=None,
-                                class_description=None,
-                                filename=None,
-                                func_objects=None,
-                                serverurl=None,
-                                outdir=None,
-                                yamlfile=None,
-                                dataclass_list=None,
-                                all_function=False,
-                                enable_upload=False,
-                                basic_auth_enabled=False,
-                                write=True):
-        """Main entry point into the module. Generates the full OpenApi YAML formatted
-        specification for a python class or module with multiple functions.
+                               class_name: str = None,
+                               class_description: str = None,
+                               filename: str = None,
+                               func_objects: Dict[str, Any] = None,
+                               serverurl: str = None,
+                               outdir: str = None,
+                               yamlfile: str = None,
+                               dataclass_list: List[type] = None,
+                               all_function: bool = False,
+                               enable_upload: bool = False,
+                               basic_auth_enabled: bool = False,
+                               write: bool = True,
+                               openapi_version: str = "3.0.0",
+                               api_version: str = "1.0"):
+        """Generates the full OpenAPI specification for a python class or module."""
+        
+        filename_stem = pathlib.Path(filename).stem if filename else "api"
+        description = class_description or "No description found"
+        
+        spec = {
+            "openapi": openapi_version,
+            "info": {
+                "title": class_name or filename_stem,
+                "description": description,
+                "version": api_version
+            },
+            "servers": [
+                {"url": serverurl, "description": description}
+            ],
+            "paths": {},
+            "components": {"schemas": {}}
+        }
 
-        Args:
-            class_name (str, optional): Python class name.
-            class_description (str, optional): Python class description.
-            filename (str, optional): Python module file name.
-            func_objects (dict, optional): All function objects in input python file.
-            serverurl (str, optional): URL for flask service.
-            outdir (str, optional): Output directory where openapi spec yaml will be written.
-            yamlfile (str, optional): File name for openapi spec yaml.
-            dataclass_list (list, optional): List containing all data class objects.
-            all_function (bool, optional): Flag to process all functions in input python file. Defaults to False.
-            enable_upload (bool, optional): Flag to support file upload function. Defaults to False.
-            basic_auth_enabled (bool, optional): Flag to enable basic authentication. Defaults to False.
-            write (bool, optional): Flag to write out openapi spec yaml to a file. Defaults to True.
-
-        Returns:
-            None: No return value, but writes to file if write flag is set.
-        """
-
-        # Initializing and setting global variables
-        paths = ""
-        description = class_description \
-            if class_description \
-            else "No description found"
-        version = "1.0"  # TODO:  hard coded for now
-        filename = pathlib.Path(filename).stem
-
-        # Loop through all functions
-        for k, v in func_objects.items():  # k = function_name, v = function object
-            VERBOSE(v)
-            func_name = v.__name__
-            # otherwise it will process the upload function, which doesn't have a defined response
-            if func_name == 'upload' and enable_upload == True:
+        # Process functions
+        for func_name, v in func_objects.items():
+            if func_name == 'upload' and enable_upload:
                 continue
-            Console.info('*'*40)
-            Console.info(f"Currently processing function: {func_name}")
+            
+            docstring = parse(v.__doc__) if v.__doc__ else None
+            func_description = docstring.short_description if docstring else func_name
+            func_ldescription = docstring.long_description if docstring and docstring.long_description else ""
 
-            docstring = parse(v.__doc__)
-
-            func_description = docstring.short_description
-
-            func_ldescription = docstring.long_description
-            if func_ldescription:
-                func_ldescription = textwrap.indent(func_ldescription.strip(), ' ' * 17)
-
-            VERBOSE(func_description)
-            VERBOSE(func_ldescription)
-
-            # Define parameters section(s) for openapi yaml
-            parameters = self.populate_parameters(v)
-            if parameters != "":
-                # Console.info(f"Processing parameters for function {func_name}")
-                parameters = textwrap.indent(parameters, ' ' * 6)
-                VERBOSE(parameters, label="openapi function parameters")
+            # Path construction
+            # Check for path parameters to inject into the path key
+            path_params = getattr(v, '_openapi_path_params', [])
+            base_path = f"/{class_name}/{func_name}" if class_name else f"/{func_name}"
+            
+            # If there are path parameters, we append them to the path: /func/{param1}/{param2}
+            if path_params:
+                path_suffix = "".join([f"/{{{p}}}" for p in path_params])
+                path_key = f"{base_path}{path_suffix}"
             else:
-                Console.info(f"Function {func_name} has no parameters defined.")
+                path_key = base_path
+            
+            # Operation ID
+            if all_function:
+                op_id = f"{filename_stem}.{func_name}"
+            else:
+                op_id = f"{filename_stem}.{class_name}.{func_name}"
 
-            # Define responses section(s) for openapi yaml
+            # Method detection
+            method = self.get_http_method(v)
+            
+            # Parameters and Request Body
+            parameters, request_body_type = self.populate_parameters(v)
+            
             if 'return' in v.__annotations__:
-                # Console.info(f"Processing response for function {func_name}")
-                responses = self.generate_response('200',
-                                                   v.__annotations__['return'],
-                                                   'OK')
+                responses = {"200": self.generate_response('200', v.__annotations__['return'], 'OK')}
             else:
-                # Console.info(f"Processing NO response for function {func_name}")
-                responses = self.generate_response('204',
-                                                   "No Response",
-                                                   'This operation returns no response.')
+                responses = {"204": self.generate_response('204', "No Response", 'This operation returns no response.')}
 
-            responses = textwrap.indent(responses, ' ' * 6)
-            VERBOSE(responses, label="openapi function responses")
+            operation = {
+                "summary": func_description,
+                "description": func_ldescription,
+                "operationId": op_id,
+                "parameters": parameters,
+                "responses": responses
+            }
 
-            # Define paths section(s) for openapi yaml
-            paths = paths + self.generate_path(class_name,
-                                               func_description,
-                                               func_ldescription,
-                                               func_name,
-                                               parameters,
-                                               responses,
-                                               filename,
-                                               all_function)
+            if request_body_type:
+                operation["requestBody"] = self.generate_request_body(request_body_type)
 
-            VERBOSE(paths, label="openapi function path")
+            if path_key not in spec["paths"]:
+                spec["paths"][path_key] = {}
+            
+            spec["paths"][path_key][method] = operation
 
-        # Indent full paths section for openapi yaml
-        paths = textwrap.indent(paths, ' ' * 2)
-        VERBOSE(paths, label="openapi function paths")
-
-        # Define components section(s) for openapi yaml
-        components = ""
-        schemas = ""
-        if len(dataclass_list) > 0:
-            components = textwrap.dedent("""
-                      components:
-                        schemas:
-                          """)
+        # Process Dataclasses
+        if dataclass_list:
             for dc in dataclass_list:
-                schemas = schemas + textwrap.indent(self.generate_schema(dc), ' ' * 6)
-        VERBOSE(components, label="openapi function components")
+                spec["components"]["schemas"][dc.__name__] = self.generate_schema(dc)
 
-        upload = ''
+        # Handle Upload
         if enable_upload:
-            upload = self.uploadTemplate.format(filename=filename)
-            upload = textwrap.indent(upload, ' ' * 2)
+            spec["paths"]["/upload"] = {
+                "post": {
+                    "summary": "upload a file",
+                    "operationId": f"{filename_stem}.upload",
+                    "requestBody": {
+                        "content": {
+                            "multipart/form-data": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "upload": {"type": "string", "format": "binary"}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "OK",
+                            "content": {"text/plain": {"schema": {"type": "string"}}}
+                        }
+                    }
+                }
+            }
 
-        if basic_auth_enabled and len(dataclass_list) == 0:
-          components = "components:" + self.basicAuthTemplate.format(filename=filename)
-        elif basic_auth_enabled:
-          components = components + self.basicAuthTemplate.format(filename=filename)
+        # Handle Basic Auth
+        if basic_auth_enabled:
+            spec["components"]["securitySchemes"] = {
+                "basicAuth": {
+                    "type": "http",
+                    "scheme": "basic",
+                    "x-basicInfoFunc": f"{filename_stem}.basic_auth"
+                }
+            }
+            spec["security"] = [{"basicAuth": []}]
 
-        # Update openapi template to create final version of openapi yaml
-        spec = self.openAPITemplate2.format(
-            title=class_name,
-            description=description,
-            version=version,
-            paths=paths.strip(),
-            serverurl=serverurl,
-            filename=filename,
-            upload=upload,
-            components=components.strip()
-        )
+        # Validation
+        try:
+            validate_spec(spec)
+            VERBOSE("OpenAPI specification validated successfully")
+        except Exception as e:
+            Console.error(f"OpenAPI validation failed: {e}")
+            raise OpenApiValidationError(f"Generated spec is invalid: {e}")
 
-        # Write openapi yaml to file
+        # Write to file
         if write:
             try:
-                if yamlfile != "" and yamlfile is not None:
-                    version = open(yamlfile, 'w').write(spec.strip())
-                else:  # should really never get here
-                    version = open(f"{outdir}/{class_name}.yaml", 'w').write(spec.strip())
-            except IOError:
-                Console.error("Unable to write yaml file")
-            except Exception as e:
-                print(e)
+                target_file = yamlfile if yamlfile else f"{outdir}/{class_name}.yaml"
+                with open(target_file, 'w') as f:
+                    yaml.dump(spec, f, sort_keys=False)
+            except IOError as e:
+                raise OpenApiGeneratorError(f"Unable to write yaml file: {e}")
 
-        return
+        return spec
 
     def generate_openapi(self,
-                          f=None,
-                          filename=None,
-                          serverurl=None,
-                          outdir=None,
-                          yamlfile=None,
-                          dataclass_list=None,
-                          enable_upload=False,
-                          basic_auth_enabled=False,
-                          write=True):
-        """Main entry point into the module. Generates the full OpenApi YAML formatted
-        specification for a module with one single function.
-
-        Args:
-            f (callable, optional): Python function object.
-            filename (str, optional): Python module file name.
-            serverurl (str, optional): Server URL for flask service.
-            outdir (str, optional): Output directory where openapi spec yaml will be written to.
-            yamlfile (str, optional): Openapi spec yaml file name.
-            dataclass_list (list, optional): List containing all data class objects.
-            enable_upload (bool, optional): Flag to support file upload function. Defaults to False.
-            basic_auth_enabled (bool, optional): Flag to enable basic authentication. Defaults to False.
-            write (bool, optional): Flag to write out openapi spec yaml to a file. Defaults to True.
-
-        Returns:
-            None: No return value, but writes to file if write flag is set.
-        """
-
-        description = f.__doc__.strip().split("\n")[0]
-        version = "1.0"  # TODO:  hard coded for now
-        title = f.__name__
-        parameters = self.populate_parameters(f)
-        if parameters != "":
-            parameters = textwrap.indent(parameters, ' ' * 8)
-            VERBOSE(parameters, label="openapi function parameters")
-        else:
-            Console.info(f"Function {title} has no parameters defined")
-
-        if 'return' in f.__annotations__:
-            # Console.info(f"Processing response for function {title}")
-            responses = self.generate_response('200',
-                                               f.__annotations__['return'],
-                                               'OK')
-        else:
-            # Console.info(f"Processing NO response for function {title}")
-            responses = self.generate_response('204',
-                                               "No Response",
-                                               'This operation returns no response.')
-        responses = textwrap.indent(responses, ' ' * 8)
-        VERBOSE(responses, label="openapi function responses")
-
-        components = ''
-        schemas = ''
-        if len(dataclass_list) > 0:
-            components = textwrap.dedent("""
-              components:
-                schemas:
-                  """)
-            for dc in dataclass_list:
-                schemas = schemas + textwrap.indent(self.generate_schema(dc), ' ' * 6)
-
-        VERBOSE(components, label="openapi function components")
-
-        filename = pathlib.Path(filename).stem
-        upload = ''
-        if enable_upload:
-            upload = self.uploadTemplate.format(filename=filename)
-            upload = textwrap.indent(upload, ' ' * 2)
-
-        if basic_auth_enabled and len(dataclass_list) == 0:
-          components = "components:" + self.basicAuthTemplate.format(filename=filename)
-        elif basic_auth_enabled:
-          components = components + self.basicAuthTemplate.format(filename=filename)
-
-        spec = self.openAPITemplate.format(
-            title=title,
-            name=f.__name__,
-            description=description,
-            version=version,
-            parameters=parameters.strip(),
-            responses=responses.strip(),
-            serverurl=serverurl,
+                        f=None,
+                        filename=None,
+                        serverurl=None,
+                        outdir=None,
+                        yamlfile=None,
+                        dataclass_list=None,
+                        enable_upload=False,
+                        basic_auth_enabled=False,
+                        write=True,
+                        openapi_version: str = "3.0.0",
+                        api_version: str = "1.0"):
+        """Main entry point for a single function."""
+        
+        filename_stem = pathlib.Path(filename).stem if filename else "api"
+        description = f.__doc__.strip().split("\n")[0] if f.__doc__ else "No description"
+        
+        # Wrap single function in a dummy dict to reuse generate_openapi_class
+        func_objects = {f.__name__: f}
+        
+        return self.generate_openapi_class(
+            class_name=f.__name__,
+            class_description=description,
             filename=filename,
-            upload=upload,
-            components=components
+            func_objects=func_objects,
+            serverurl=serverurl,
+            outdir=outdir,
+            yamlfile=yamlfile,
+            dataclass_list=dataclass_list or [],
+            enable_upload=enable_upload,
+            basic_auth_enabled=basic_auth_enabled,
+            write=write,
+            openapi_version=openapi_version,
+            api_version=api_version,
+            all_function=True
         )
-
-        # remove 'parameters:' section if empty
-        if parameters == '':
-            spec = re.sub('\s*parameters:', '', spec)
-        if write:
-            try:
-                if yamlfile != "" and yamlfile is not None:
-                    version = open(yamlfile, 'w').write(spec)
-                else:  # should really never get here
-                    version = open(f"{outdir}/{title}.yaml", 'w').write(spec)
-            except IOError:
-                Console.error("Unable to write yaml file")
-            except Exception as e:
-                print(e)
-
-        return
-
-
-    # TODO: integrate the below functions into the package
-    '''
-    def file_put(root_url, service, filename, verbose=False):
-
-        url = f'http://{root_url}/cloudmesh/{service}/file/put'
-        print("URL", url)
-        files = {'file': open(filename, 'rb')}
-        r = requests.post(url, files=files)
-        return r.text
-
-    def file_list(root_url):
-        r = requests.get(f'http://{root_url}/file/list')
-        return r.text
-
-    def file_get(root_url, service, filename):
-
-        url = f'http://{root_url}/cloudmesh/{service}/file/get/{filename}'
-
-        print("URL", url)
-
-        r = requests.get(url)
-        return r.text
-    '''

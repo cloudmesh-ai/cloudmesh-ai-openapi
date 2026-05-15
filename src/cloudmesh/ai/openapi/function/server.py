@@ -14,6 +14,7 @@ from cloudmesh.ai.common.io import Console
 from cloudmesh.ai.common.debug import VERBOSE
 from cloudmesh.ai.common.util import path_expand
 from cloudmesh.ai.openapi.registry.Registry import Registry
+from cloudmesh.ai.openapi.exceptions import OpenApiServerError, OpenApiRegistryError
 
 
 def dynamic_import(abs_module_path: str, class_name: str) -> Any:
@@ -56,7 +57,7 @@ class Server(object):
 
         if spec is None:
             Console.error("No service specification file defined")
-            raise FileNotFoundError
+            raise OpenApiServerError("No service specification file defined")
 
         self.spec = path_expand(spec)
 
@@ -85,12 +86,10 @@ class Server(object):
                 print(e)
                 Console.error(
                     "tornado not install. Please use `pip install tornado`")
-                sys.exit(1)
-                # return ""
+                raise OpenApiServerError("Tornado not installed. Please use `pip install tornado`")
             if self.debug:
                 Console.error("Tornado does not support --verbose")
-                sys.exit(1)
-                # return ""
+                raise OpenApiServerError("Tornado does not support --verbose")
 
         Console.ok(self.directory)
 
@@ -277,6 +276,7 @@ class Server(object):
                 registry.delete(name=name)
             except Exception as e:
                 Console.error(f"Failed to kill process {pid}: {e}")
+                raise OpenApiServerError(f"Failed to kill process {pid}: {e}")
         else:
             Console.error(f"No Cloudmesh OpenAPI Server found with the name {name}")
 
@@ -323,7 +323,7 @@ class Server(object):
                 f.write(flask_script)
         except IOError as e:
             Console.error(f"Unable to write server file: {e}")
-            raise
+            raise OpenApiServerError(f"Unable to write server file: {e}")
 
         pid = 0
         try:
@@ -342,14 +342,14 @@ class Server(object):
                 
         except Exception as e:
             Console.error(f"Unable to start server: {e}")
-            raise
+            raise OpenApiServerError(f"Unable to start server: {e}")
 
         try:
             with open(self.spec, "r") as stream:
                 details = yaml.safe_load(stream)
         except (yaml.YAMLError, IOError) as e:
             Console.error(f"Yaml file has syntax error or is missing: {e}")
-            raise
+            raise OpenApiServerError(f"Yaml file has syntax error or is missing: {e}")
 
         url = details["servers"][0]["url"]
 
