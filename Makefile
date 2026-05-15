@@ -118,31 +118,6 @@ doc:
 
 doc-real: doc
 
-doc-publish: doc
-	@echo "Publishing documentation to gh-pages..."
-	../.venv-docs/bin/mkdocs gh-deploy
-
-pdoc:
-	@echo "Building site..."
-	$(MAKE) doc
-	@echo "Serving documentation locally on port 8000..."
-	cd site && $(PYTHON) -m http.server 8000
-
-serve: pdoc
-
-# --- CLEANUP & REINSTALL ---
-
-uninstall-all:
-	@echo "Searching for installed cloudmesh-ai packages..."
-	@$(PIP) freeze | grep "cloudmesh-ai" | cut -d'=' -f1 | xargs $(PIP) uninstall -y || echo "No cloudmesh-ai packages found."
-
-clean:
-	@echo "Cleaning artifacts and temporary test plugins..."
-	rm -rf build/ dist/ *.egg-info .pytest_cache .coverage .report.html
-	find . -type d -name "__pycache__" -exec rm -rf {} +
-	find . -type f -name "*.pyc" -delete
-	rm -rf tmp/cloudmesh-ai-*
-
-reinstall: uninstall-all clean
-	@echo "Performing fresh install..."
-	$(PIP) install -e .
+publish:
+t@echo "Deploying MkDocs site to GitHub Pages..."
+tmkdocs gh-deploy --clean
