@@ -101,14 +101,14 @@ watch:
 	@echo "Watching for changes (polling every 2s)..."
 	@touch .last_css_check; \
 	while true; do \
-		if find docs -name "*.md" -o -name "*.css" -newer .last_css_check | grep -q .; then \
-			echo "Change detected, rebuilding..."; \
-			$(MAKE) doc; \
-			sleep 1; \
-			$(BROWSER) "file://$(CURDIR)/site/api.html?v=$(shell date +%s)"; \
-		fi; \
-		touch .last_css_check; \
-		sleep 2; \
+	if find docs -name "*.md" -o -name "*.css" -newer .last_css_check | grep -q .; then \
+	echo "Change detected, rebuilding..."; \
+	$(MAKE) doc; \
+	sleep 1; \
+	$(BROWSER) "file://$(CURDIR)/site/api.html?v=$(shell date +%s)"; \
+	fi; \
+	touch .last_css_check; \
+	sleep 2; \
 	done
 
 
