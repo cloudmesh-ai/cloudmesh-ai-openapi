@@ -14,7 +14,7 @@ PYENVVERSION := $(shell pyenv version-name)
 OPEN         := open
 BROWSER      := open -a "DuckDuckGo"
 
-.PHONY: help install clean build test reinstall \ doc
+.PHONY: help install clean build test reinstall \ doc view
         check tag release test-html test-cov setup-test uninstall-all \
         tmp-setup view doc doc-real doc-publish pdoc serve watch
 
@@ -33,6 +33,7 @@ help:
 	@echo "  tag           - Create a git tag based on current version and push"
 	@echo "  release       - Full Production Cycle: upload + tag"
 	@echo "  doc           - Generate documentation (pdoc + MkDocs)"
+	@echo "  view          - Preview documentation locally"
 	@echo "  doc-real      - Generate documentation (pdoc + MkDocs)"
 	@echo "  doc-publish   - Publish documentation to gh-pages"
 	@echo "  pdoc          - Serve documentation locally"
