@@ -1,9 +1,7 @@
-# API Reference
+# cloudmesh-ai-openapi API Reference
 
-This page provides the automatically generated API reference for the Cloudmesh AI OpenAPI package.
+This page provides the API reference for the `cloudmesh-ai-openapi` library.
 
-::: cloudmesh.ai.openapi.authentication
-::: cloudmesh.ai.openapi.command
-::: cloudmesh.ai.openapi.function
-::: cloudmesh.ai.openapi.generator
-::: cloudmesh.ai.openapi.registry
+## API Documentation
+
+::: cloudmesh.ai.openapi
