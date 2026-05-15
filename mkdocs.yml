@@ -4,33 +4,29 @@ use_directory_urls: false
 theme:
   name: material
   logo: assets/logo-white.png
-  favicon: assets/favicon.svg
-
+  favicon: assets/favicon.ico
 extra_css:
-  - css/custom.css
-
-
-
+- css/custom.css
 nav:
-  - Home: index.md
-  - Manual: manual.md
-  - Scikit-Learn Guide: sklearn.md
-  - API Reference: api.md
-
+- Home: index.md
+- Manual: manual.md
+- Scikit-Learn Guide: sklearn.md
+- API Reference: api.md
 plugins:
-  - search
-  - mkdocstrings:
-      handlers:
-        python:
-          paths: [src]
-          options:
-            docstring_style: google
-            show_submodules: true
-            members: true
-            docstring_section_style: table
-            show_source: true
-            group_by_category: true
-            show_category_heading: true
-            separate_signature: true
-            show_root_full_path: true
-            show_root_toc: true
+- search
+- mkdocstrings:
+    handlers:
+      python:
+        paths:
+        - src
+        options:
+          docstring_style: google
+          show_submodules: true
+          members: true
+          docstring_section_style: table
+          show_source: true
+          group_by_category: true
+          show_category_heading: true
+          separate_signature: true
+          show_root_full_path: true
+          show_root_toc: true
