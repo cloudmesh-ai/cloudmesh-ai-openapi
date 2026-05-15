@@ -1,5 +1,5 @@
-from cloudmesh.configuration.Config import Config
-from cloudmesh.common.console import Console
+from cloudmesh.ai.common.config import Config
+from cloudmesh.ai.common.io import Console
 from cloudmesh.ai.openapi.registry.RegistryPickle import RegistryPickle
 
 

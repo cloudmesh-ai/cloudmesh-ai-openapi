@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from cloudmesh.common.Shell import Shell
-from cloudmesh.common.util import path_expand
+from cloudmesh.ai.common.Shell import Shell
+from cloudmesh.ai.common.util import path_expand
 
 from joblib import dump, load
 from sklearn import svm

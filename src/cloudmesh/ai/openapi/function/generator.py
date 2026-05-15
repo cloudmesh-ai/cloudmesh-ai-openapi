@@ -4,8 +4,8 @@ import re
 from dataclasses import is_dataclass
 
 import requests
-from cloudmesh.common.console import Console
-from cloudmesh.common.debug import VERBOSE
+from cloudmesh.ai.common.io import Console
+from cloudmesh.ai.common.debug import VERBOSE
 from docstring_parser import parse
 
 

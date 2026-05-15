@@ -51,7 +51,7 @@ class AIServices:
         Create Dataset Group required for AWS Forecasting Service
         :return:
         '''
-        from cloudmesh.common.StopWatch import StopWatch
+        from cloudmesh.ai.common.StopWatch import StopWatch
 
         import time
 

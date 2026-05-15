@@ -7,8 +7,8 @@ Description:
   table   prints the latex table with all values
 """
 
-from cloudmesh.common.util import download
-from cloudmesh.common.util import readfile
+from cloudmesh.ai.common.util import download
+from cloudmesh.ai.common.util import readfile
 import oyaml as yaml
 from pprint import pprint
 from docopt import docopt

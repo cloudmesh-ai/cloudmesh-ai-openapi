@@ -16,13 +16,13 @@ import requests
 
 sys.path.append("./tests")
 import util as util
-from cloudmesh.common.Shell import Shell
+from cloudmesh.ai.common.Shell import Shell
 from importlib import import_module
 from cloudmesh.openapi.function.executor import Parameter
 import types
-from cloudmesh.common.dotdict import dotdict
-from cloudmesh.common.Benchmark import Benchmark
-from cloudmesh.common.util import HEADING
+from cloudmesh.ai.common.dotdict import dotdict
+from cloudmesh.ai.common.Benchmark import Benchmark
+from cloudmesh.ai.common.util import HEADING
 
 
 

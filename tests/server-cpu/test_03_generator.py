@@ -8,9 +8,9 @@ import sys
 sys.path.append("./tests/lib")
 from generator_test import GeneratorBaseTest, ServerBaseTest
 import pytest
-from cloudmesh.common.Benchmark import Benchmark
-from cloudmesh.common.debug import VERBOSE
-from cloudmesh.common.util import HEADING
+from cloudmesh.ai.common.Benchmark import Benchmark
+from cloudmesh.ai.common.debug import VERBOSE
+from cloudmesh.ai.common.util import HEADING
 import requests
 
 

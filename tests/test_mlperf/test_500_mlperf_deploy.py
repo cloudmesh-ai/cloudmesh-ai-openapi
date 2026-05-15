@@ -8,10 +8,10 @@ import time
 
 import pytest
 import requests
-from cloudmesh.common.Benchmark import Benchmark
-from cloudmesh.common.debug import VERBOSE
-from cloudmesh.common.util import HEADING
-from cloudmesh.common.Shell import Shell
+from cloudmesh.ai.common.Benchmark import Benchmark
+from cloudmesh.ai.common.debug import VERBOSE
+from cloudmesh.ai.common.util import HEADING
+from cloudmesh.ai.common.Shell import Shell
 
 Benchmark.debug()
 

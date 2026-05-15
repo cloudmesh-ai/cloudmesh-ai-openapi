@@ -1,7 +1,7 @@
 import os
 import requests
 import sys
-from cloudmesh.common.util import path_expand
+from cloudmesh.ai.common.util import path_expand
 import connexion
 from pathlib import Path
 

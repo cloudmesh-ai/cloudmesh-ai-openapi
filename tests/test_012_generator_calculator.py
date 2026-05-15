@@ -14,13 +14,13 @@ from pprint import pprint
 import sys
 import pytest
 import tests.util as util
-from cloudmesh.common.Benchmark import Benchmark
-from cloudmesh.common.Shell import Shell
-from cloudmesh.common.util import HEADING
-from cloudmesh.common.util import path_expand
+from cloudmesh.ai.common.Benchmark import Benchmark
+from cloudmesh.ai.common.Shell import Shell
+from cloudmesh.ai.common.util import HEADING
+from cloudmesh.ai.common.util import path_expand
 from importlib import import_module
 from cloudmesh.openapi.function.executor import Parameter
-from cloudmesh.common.dotdict import dotdict
+from cloudmesh.ai.common.dotdict import dotdict
 import types
 from cloudmesh.shell.command import command, map_parameters
 

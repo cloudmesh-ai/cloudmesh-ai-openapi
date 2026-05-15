@@ -8,9 +8,9 @@ import requests
 from pprint import pprint
 
 import pytest
-from cloudmesh.common.Printer import Printer
-from cloudmesh.common.util import HEADING
-from cloudmesh.common.Benchmark import Benchmark
+from cloudmesh.ai.common.Printer import Printer
+from cloudmesh.ai.common.util import HEADING
+from cloudmesh.ai.common.Benchmark import Benchmark
 from cloudmesh.configuration.Config import Config
 from pprint import pprint
 

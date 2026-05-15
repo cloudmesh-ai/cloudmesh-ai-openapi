@@ -1,8 +1,8 @@
 import yaml
 import requests
 from pathlib import Path
-from cloudmesh.common.console import Console
-from cloudmesh.common.debug import VERBOSE
+from cloudmesh.ai.common.io import Console
+from cloudmesh.ai.common.debug import VERBOSE
 
 class AITestGenerator:
     """

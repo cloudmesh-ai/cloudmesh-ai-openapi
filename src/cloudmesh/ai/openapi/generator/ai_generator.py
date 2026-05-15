@@ -2,8 +2,8 @@ import yaml
 import requests
 from pathlib import Path
 from typing import Optional, Dict, Any
-from cloudmesh.common.console import Console
-from cloudmesh.common.debug import VERBOSE
+from cloudmesh.ai.common.io import Console
+from cloudmesh.ai.common.debug import VERBOSE
 try:
     from openapi_spec_validator import validate_spec
 except ImportError:

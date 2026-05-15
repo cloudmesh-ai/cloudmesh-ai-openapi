@@ -1,7 +1,7 @@
 import os
 import pickle
-from cloudmesh.common.util import path_expand
-from cloudmesh.common.console import Console
+from cloudmesh.ai.common.util import path_expand
+from cloudmesh.ai.common.io import Console
 
 
 class PickleDB:

@@ -1,15 +1,15 @@
 import os
 import sys
-from cloudmesh.common.Shell import Shell
+from cloudmesh.ai.common.Shell import Shell
 import pandas as pd
 import numpy as np
-from cloudmesh.common.Benchmark import Benchmark
+from cloudmesh.ai.common.Benchmark import Benchmark
 from timeit import default_timer
 from socket import gethostname
 import matplotlib.pyplot as plt
 from matplotlib.legend_handler import HandlerTuple
 from multiprocessing import Pool
-from cloudmesh.common.util import HEADING
+from cloudmesh.ai.common.util import HEADING
 import requests
 from cloudmesh.configuration.Config import Config
 import shutil

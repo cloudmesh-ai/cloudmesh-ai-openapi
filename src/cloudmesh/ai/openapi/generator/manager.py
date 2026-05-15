@@ -2,7 +2,7 @@ import yaml
 import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional
-from cloudmesh.common.console import Console
+from cloudmesh.ai.common.io import Console
 
 class OpenAPIMarkdown:
     """

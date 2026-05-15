@@ -7,11 +7,11 @@ from google.cloud.language import enums
 from google.cloud.language import types
 import requests, uuid, json, yaml, os
 from google.cloud import translate
-from cloudmesh.common.FlatDict import flatten
-from cloudmesh.common.dotdict import dotdict
-from cloudmesh.common.Shell import Shell
+from cloudmesh.ai.common.FlatDict import flatten
+from cloudmesh.ai.common.dotdict import dotdict
+from cloudmesh.ai.common.Shell import Shell
 from cloudmesh.mongo.CmDatabase import CmDatabase
-from cloudmesh.common.util import path_expand
+from cloudmesh.ai.common.util import path_expand
 from pathlib import Path
 from cloudmesh.mongo.DataBaseDecorator import DatabaseUpdate
 

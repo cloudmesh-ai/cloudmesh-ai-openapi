@@ -6,10 +6,10 @@ from pathlib import Path
 
 from shutil import copyfile
 
-from cloudmesh.common.console import Console
-from cloudmesh.common.util import path_expand
-from cloudmesh.common.Shell import Shell
-from cloudmesh.configuration.Config import Config
+from cloudmesh.ai.common.io import Console
+from cloudmesh.ai.common.util import path_expand
+from cloudmesh.ai.common.Shell import Shell
+from cloudmesh.ai.common.config import Config
 
 class BasicAuth:
     """

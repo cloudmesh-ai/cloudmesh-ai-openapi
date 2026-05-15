@@ -1,6 +1,6 @@
 import connexion
 from pathlib import Path
-from cloudmesh.common.util import path_expand
+from cloudmesh.ai.common.util import path_expand
 
 
 class FileOperation:

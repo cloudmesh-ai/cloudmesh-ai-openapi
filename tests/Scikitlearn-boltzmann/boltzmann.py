@@ -7,8 +7,8 @@ from scipy.ndimage import convolve
 from typing import Tuple, NoReturn
 from joblib import dump, load
 
-from cloudmesh.common.Shell import Shell
-from cloudmesh.common.util import path_expand
+from cloudmesh.ai.common.Shell import Shell
+from cloudmesh.ai.common.util import path_expand
 
 import matplotlib.pyplot as plt
 import numpy as np

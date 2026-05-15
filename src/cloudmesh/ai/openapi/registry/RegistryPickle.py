@@ -1,5 +1,4 @@
-from cloudmesh.common.Printer import Printer
-from cloudmesh.common.Shell import Shell
+from cloudmesh.ai.common.Shell import Shell
 from cloudmesh.ai.openapi.registry.DataBaseDecorator import DatabaseUpdate
 from cloudmesh.ai.openapi.registry.PickleDB import PickleDB
 
@@ -63,16 +62,9 @@ class RegistryPickle:
             header = self.output[RegistryPickle.kind]['header']  # not pretty
             # humanize = self.output[kind]['humanize']  # not pretty
 
-            print(Printer.flatwrite(data,
-                                    sort_keys=["name"],
-                                    order=order,
-                                    header=header,
-                                    output=output,
-                                    # humanize=humanize
-                                    )
-                  )
+            print(data)
         else:
-            print(Printer.write(data, output=output))
+            print(data)
 
     @DatabaseUpdate(provider="pickle")
     def add(self, name=None, **kwargs):

@@ -1,12 +1,11 @@
 from cloudmesh.ai.openapi.registry.DataBaseDecorator import DatabaseUpdate
 from cloudmesh.ai.openapi.registry.Registry import Registry
 from pathlib import Path
-from cloudmesh.common.util import path_expand
-from cloudmesh.common.debug import VERBOSE
-from cloudmesh.common.console import Console
+from cloudmesh.ai.common.util import path_expand
+from cloudmesh.ai.common.debug import VERBOSE
+from cloudmesh.ai.common.io import Console
 import pickle
-from cloudmesh.common.StopWatch import StopWatch
-from cloudmesh.common.Benchmark import Benchmark
+from cloudmesh.ai.common.stopwatch import StopWatch
 import os
 
 

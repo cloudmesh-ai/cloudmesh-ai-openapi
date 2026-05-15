@@ -8,8 +8,8 @@ import time
 from pprint import pprint
 
 
-from cloudmesh.common.Benchmark import Benchmark
-from cloudmesh.common.util import HEADING
+from cloudmesh.ai.common.Benchmark import Benchmark
+from cloudmesh.ai.common.util import HEADING
 from tests.generator import LinearRegression
 
 import sys

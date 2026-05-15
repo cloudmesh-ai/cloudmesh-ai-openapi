@@ -11,8 +11,8 @@ from flask import jsonify
 from cloudmesh.openapi.registry.fileoperation import FileOperation
 import connexion
 from pathlib import Path
-from cloudmesh.common.util import path_expand
-from cloudmesh.common.StopWatch import StopWatch
+from cloudmesh.ai.common.util import path_expand
+from cloudmesh.ai.common.StopWatch import StopWatch
 
 
 AIServObj = AIServices('aws')

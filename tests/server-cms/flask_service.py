@@ -1,5 +1,5 @@
 import cms
-from cloudmesh.common.Printer import Printer
+from cloudmesh.ai.common.Printer import Printer
 from flask import Flask
 from flask import jsonify
 from flask import request

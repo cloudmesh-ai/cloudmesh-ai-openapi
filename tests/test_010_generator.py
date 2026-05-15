@@ -8,9 +8,9 @@ from pprint import pprint
 
 import pytest
 import tests.util as util
-from cloudmesh.common.Benchmark import Benchmark
-from cloudmesh.common.Shell import Shell
-from cloudmesh.common.util import HEADING
+from cloudmesh.ai.common.Benchmark import Benchmark
+from cloudmesh.ai.common.Shell import Shell
+from cloudmesh.ai.common.util import HEADING
 
 directory = "./tests/server-cpu"
 filename = "cpu.py"

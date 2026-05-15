@@ -9,8 +9,8 @@ from generator_test import GeneratorBaseTest, ServerBaseTest
 from tests.generator import LinearRegression
 import pytest
 
-from cloudmesh.common.Benchmark import Benchmark
-from cloudmesh.common.util import HEADING
+from cloudmesh.ai.common.Benchmark import Benchmark
+from cloudmesh.ai.common.util import HEADING
 from cloudmesh.management.configuration.name import Name
 service ="openapi"
 Benchmark.debug()

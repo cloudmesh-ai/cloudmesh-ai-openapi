@@ -1,5 +1,5 @@
 import numpy as np
-from cloudmesh.common.util import path_expand
+from cloudmesh.ai.common.util import path_expand
 
 def print_csv2np(filename: str) -> str:
     """

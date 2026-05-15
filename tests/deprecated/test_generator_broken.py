@@ -10,8 +10,8 @@ import yaml as yaml
 
 sys.path.append("cloudmesh/openapi/function")
 import tests.sample_function_gen as testfun
-from cloudmesh.common.util import HEADING
-from cloudmesh.common.Benchmark import Benchmark
+from cloudmesh.ai.common.util import HEADING
+from cloudmesh.ai.common.Benchmark import Benchmark
 
 @pytest.mark.incremental
 class TestGenerator:

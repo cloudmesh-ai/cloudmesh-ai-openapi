@@ -2,9 +2,9 @@ from pprint import pprint
 
 import pytest
 import yaml as yaml
-from cloudmesh.common.Shell import Shell
-from cloudmesh.common.Benchmark import Benchmark
-from cloudmesh.common.util import HEADING, path_expand
+from cloudmesh.ai.common.Shell import Shell
+from cloudmesh.ai.common.Benchmark import Benchmark
+from cloudmesh.ai.common.util import HEADING, path_expand
 import os
 import time
 

@@ -4,9 +4,9 @@ import glob
 import os
 import textwrap
 
-from cloudmesh.common.Shell import Shell
-from cloudmesh.common.util import readfile
-from cloudmesh.common.util import writefile
+from cloudmesh.ai.common.Shell import Shell
+from cloudmesh.ai.common.util import readfile
+from cloudmesh.ai.common.util import writefile
 
 #
 # Find icons

@@ -6,7 +6,7 @@ from msrest.authentication import CognitiveServicesCredentials
 
 from array import array
 import os
-from cloudmesh.common.util import path_expand
+from cloudmesh.ai.common.util import path_expand
 from pathlib import Path
 from PIL import Image
 import sys

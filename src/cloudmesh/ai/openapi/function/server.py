@@ -9,10 +9,10 @@ from typing import Optional, List, Dict, Any
 
 import connexion
 import yaml
-from cloudmesh.common.Shell import Shell
-from cloudmesh.common.console import Console
-from cloudmesh.common.debug import VERBOSE
-from cloudmesh.common.util import path_expand
+from cloudmesh.ai.common.Shell import Shell
+from cloudmesh.ai.common.io import Console
+from cloudmesh.ai.common.debug import VERBOSE
+from cloudmesh.ai.common.util import path_expand
 from cloudmesh.ai.openapi.registry.Registry import Registry
 
 

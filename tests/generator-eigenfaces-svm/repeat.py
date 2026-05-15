@@ -1,4 +1,4 @@
-from cloudmesh.common.Shell import Shell
+from cloudmesh.ai.common.Shell import Shell
 count = 1
 for x in range(0,30):
     print(count, "iteration")

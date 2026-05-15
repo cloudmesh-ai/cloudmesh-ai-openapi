@@ -11,8 +11,8 @@ Here come document for test
 
 """
 import pytest
-from cloudmesh.common.util import HEADING
-from cloudmesh.common.util import banner
+from cloudmesh.ai.common.util import HEADING
+from cloudmesh.ai.common.util import banner
 import requests
 import os
 import subprocess
@@ -27,9 +27,9 @@ from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 from sklearn.decomposition import PCA
 from sklearn.svm import SVC
-from cloudmesh.common.Benchmark import Benchmark
-from cloudmesh.common.Shell import Shell
-from cloudmesh.common.variables import Variables
+from cloudmesh.ai.common.Benchmark import Benchmark
+from cloudmesh.ai.common.Shell import Shell
+from cloudmesh.ai.common.variables import Variables
 from cloudmesh.configuration.Config import Config
 
 

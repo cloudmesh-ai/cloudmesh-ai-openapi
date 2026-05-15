@@ -7,11 +7,11 @@ from pprint import pprint
 
 import pytest
 import yaml as yaml
-from cloudmesh.common.Benchmark import Benchmark
-from cloudmesh.common.util import HEADING
+from cloudmesh.ai.common.Benchmark import Benchmark
+from cloudmesh.ai.common.util import HEADING
 from cloudmesh.openapi.registry.Registry import Registry
-from cloudmesh.common.variables import Variables
-from cloudmesh.common.util import path_expand
+from cloudmesh.ai.common.variables import Variables
+from cloudmesh.ai.common.util import path_expand
 
 Registry.protocol(protocol="pickle")
 variable=Variables()

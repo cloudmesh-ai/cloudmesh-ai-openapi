@@ -2,8 +2,8 @@ import os
 import sys
 import textwrap
 
-from cloudmesh.common.console import Console
-from cloudmesh.common.util import path_expand
+from cloudmesh.ai.common.io import Console
+from cloudmesh.ai.common.util import path_expand
 
 
 class Parameter:

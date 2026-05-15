@@ -4,7 +4,7 @@ import io
 from google.cloud import storage, vision
 import csv
 import boto3
-from cloudmesh.common.util import path_expand
+from cloudmesh.ai.common.util import path_expand
 #from flask import jsonify
 
 def detect_text_google() -> str:

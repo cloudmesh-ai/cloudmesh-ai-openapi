@@ -7,10 +7,9 @@ from importlib import import_module
 from pathlib import Path
 from shutil import copyfile
 
-from cloudmesh.common.Printer import Printer
-from cloudmesh.common.console import Console
-from cloudmesh.common.debug import VERBOSE
-from cloudmesh.common.util import path_expand
+from cloudmesh.ai.common.io import Console
+from cloudmesh.ai.common.debug import VERBOSE
+from cloudmesh.ai.common.util import path_expand
 from cloudmesh.ai.openapi.authentication.basic import BasicAuth
 from cloudmesh.ai.openapi.function import generator
 from cloudmesh.ai.openapi.function.server import Server
@@ -18,8 +17,16 @@ from cloudmesh.ai.openapi.function.executor import Parameter
 from cloudmesh.ai.openapi.registry.Registry import Registry
 from cloudmesh.ai.openapi.generator.ai_generator import AIGenerator
 from cloudmesh.ai.openapi.generator.manager import Manager, OpenAPIMarkdown
-from cloudmesh.shell.command import PluginCommand
-from cloudmesh.shell.command import command, map_parameters
+try:
+    from cloudmesh.shell.command import PluginCommand
+    from cloudmesh.shell.command import command, map_parameters
+except ImportError:
+    class PluginCommand:
+        pass
+    def command(func):
+        return func
+    def map_parameters(args, *params):
+        pass
 
 # start-stop: osx Andrew
 # start-stop: linux Prateek
@@ -427,7 +434,7 @@ class OpenapiCommand(PluginCommand):
 
                 # BUG: order= nt yet defined
 
-                print(Printer.list(result))
+                print(result)
 
             except ConnectionError:
                 Console.error("Server not running")
@@ -439,7 +446,7 @@ class OpenapiCommand(PluginCommand):
                 Console.info("Running Cloudmesh OpenAPI Servers")
                 print()
                 result = Server.ps(name=arguments.NAME)
-                print(Printer.list(result, order=["name", "pid", "spec"]))
+                print(result)
 
                 print()
             except ConnectionError:

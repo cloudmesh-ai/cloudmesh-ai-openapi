@@ -9,7 +9,7 @@ from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 from sklearn.decomposition import PCA
 from sklearn.svm import SVC
-from cloudmesh.common.Benchmark import Benchmark
+from cloudmesh.ai.common.Benchmark import Benchmark
 
 # This examples is takenfrom https://scikit-learn.org/stable/auto_examples/applications/plot_face_recognition.html#sphx-glr-auto-examples-applications-plot-face-recognition-py
 

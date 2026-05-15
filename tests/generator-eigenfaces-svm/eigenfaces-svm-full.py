@@ -11,12 +11,12 @@ from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 from sklearn.decomposition import PCA
 from sklearn.svm import SVC
-from cloudmesh.common.Benchmark import Benchmark
+from cloudmesh.ai.common.Benchmark import Benchmark
 from sklearn.datasets._base import get_data_home, _fetch_remote, RemoteFileMetadata
 from os import listdir, makedirs, remove
 from os.path import dirname, join, exists, isdir
-from cloudmesh.common.Shell import Shell
-from cloudmesh.common.util import path_expand
+from cloudmesh.ai.common.Shell import Shell
+from cloudmesh.ai.common.util import path_expand
 from joblib import dump, load
 from typing import Tuple
 

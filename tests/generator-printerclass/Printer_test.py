@@ -4,15 +4,15 @@ Convenient methods and classes to print tables.
 import json
 
 import oyaml as yaml
-from cloudmesh.common.FlatDict import flatten
-from cloudmesh.common.console import Console
-from cloudmesh.common.dotdict import dotdict
+from cloudmesh.ai.common.FlatDict import flatten
+from cloudmesh.ai.common.console import Console
+from cloudmesh.ai.common.dotdict import dotdict
 # from prettytable import PrettyTable
-from cloudmesh.common.prettytable import PrettyTable
-from cloudmesh.common.util import convert_from_unicode
+from cloudmesh.ai.common.prettytable import PrettyTable
+from cloudmesh.ai.common.util import convert_from_unicode
 from humanize import naturaltime
 from dateutil import parser
-from cloudmesh.common.DateTime import DateTime
+from cloudmesh.ai.common.DateTime import DateTime
 
 
 class Printer(object):
