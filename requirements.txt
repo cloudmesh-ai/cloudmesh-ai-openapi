@@ -1,0 +1,15 @@
+cloudmesh-ai-common
+cloudmesh-ai-cmc
+cloudmesh-ai-hpc
+click==8.3.3
+rich==15.0.0
+pytest==9.0.3
+connexion==3.3.0
+fastapi==0.136.0
+uvicorn==0.44.0
+openapi-spec-validator==0.8.5
+docstring_parser==0.18.0
+azure-ai-textanalytics==5.4.0
+google-cloud-translate==3.26.0
+google-cloud-language==2.20.0
+msrest==0.7.1
