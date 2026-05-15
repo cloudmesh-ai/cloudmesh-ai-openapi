@@ -120,4 +120,4 @@ doc-real: doc
 
 publish:
 	@echo "Deploying MkDocs site to GitHub Pages..."
-	mkdocs gh-deploy --clean
+	./publish.sh
