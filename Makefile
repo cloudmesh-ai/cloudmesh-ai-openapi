@@ -14,9 +14,7 @@ PYENVVERSION := $(shell pyenv version-name)
 OPEN         := open
 BROWSER      := open -a "DuckDuckGo"
 
-.PHONY: help install clean build test reinstall \ doc view
-        check tag release test-html test-cov setup-test uninstall-all \
-        tmp-setup view doc doc-real doc-publish pdoc serve watch
+.PHONY: help install clean build test reinstall \ doc view check tag release test-html test-cov setup-test uninstall-all tmp-setup view doc doc-real doc-publish pdoc serve watch
 
 help:
 	@echo
