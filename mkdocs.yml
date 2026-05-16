@@ -3,12 +3,13 @@ extra_css:
 - css/custom.css
 nav:
 - Home: index.md
-- Manual: manual.md
-- Scikit-Learn Guide: sklearn.md
+- Documents:
+  - README: readme.md
+  - prompt-ai-function: prompt-ai-function.md
+  - README-ai: README-ai.md
+  - Manual: manual.md
+  - Scikit-Learn Guide: sklearn.md
 - API Reference: api.md
-- prompt-ai-function: prompt-ai-function.md
-- README-ai: README-ai.md
-- README: README.md
 plugins:
 - search
 - mkdocstrings:
