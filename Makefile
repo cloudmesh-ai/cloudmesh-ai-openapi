@@ -84,8 +84,8 @@ release: upload tag
 
 # --- DOCUMENTATION ---
 
-view: 
-	$(OPEN) site/index.html
+view:
+	mkdocs serve --livereload
 
 create: doc
 	$(BROWSER) site/api.html

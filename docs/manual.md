@@ -12,32 +12,46 @@ Cloudmesh AI OpenAPI is a framework for automatically generating OpenAPI specifi
 
 ## Usage
 
+### Generation
+```bash
+openapi generate [FUNCTION] 
+    --filename=FILENAME
+    [--serverurl=SERVERURL]
+    [--yamlfile=YAML]
+    [--import_class]
+    [--all_functions]
+    [--enable_upload]
+    [--ai]
+    [--verbose]
+    [--basic_auth=CREDENTIALS]
 ```
-openapi generate [FUNCTION] --filename=FILENAME
-                                  [--serverurl=SERVERURL]
-                                  [--yamlfile=YAML]
-                                  [--import_class]
-                                  [--all_functions]
-                                  [--enable_upload]
-                                  [--ai]
-                                  [--verbose]
-                                  [--basic_auth=CREDENTIALS]
+
+### Server Management
+```bash
 openapi server start YAML [NAME]
-                     [--directory=DIRECTORY]
-                     [--port=PORT]
-                     [--server=SERVER]
-                     [--host=HOST]
-                     [--verbose]
-                     [--debug]
-                     [--fg]
+    [--directory=DIRECTORY]
+    [--port=PORT]
+    [--server=SERVER]
+    [--host=HOST]
+    [--verbose]
+    [--debug]
+    [--fg]
 openapi server stop NAME
 openapi server list [NAME] [--output=OUTPUT]
 openapi server ps [NAME] [--output=OUTPUT]
+```
+
+### Registry Management
+```bash
 openapi register add NAME ENDPOINT
 openapi register filename NAME
 openapi register delete NAME
 openapi register list [NAME] [--output=OUTPUT]
 openapi register protocol PROTOCOL
+```
+
+### Testing & Documentation
+```bash
 openapi test generate [FUNCTION] --filename=FILENAME --yamlfile=YAML
 openapi merge [SERVICES...] [--dir=DIR] [--verbose]
 openapi doc FILE --format=(txt|md) [--indent=INDENT]
@@ -70,55 +84,66 @@ openapi doc [SERVICES...] [--dir=DIR]
 ## Detailed Command Descriptions
 
 ### AI-Powered OpenAPI Generation
-`openapi generate [FUNCTION] --filename=FILENAME [--ai] ...`
 
-Generates an OpenAPI 3.0 specification. When the `--ai` flag is used, the system employs a sophisticated generation pipeline:
-1.  **Few-Shot Prompting**: The generator loads Python/YAML pairs from the `examples/` directory to provide the LLM with context and desired patterns.
-2.  **Validation Loop**: The generated YAML is passed through a two-stage validator:
-    *   **Syntax Check**: Ensures the output is valid YAML.
-    *   **Schema Check**: Uses `openapi-spec-validator` to ensure the output adheres to the OpenAPI 3.0 specification.
-3.  **Self-Correction**: If validation fails, the error message is fed back to the LLM for automatic correction (up to 3 retries).
+* `openapi generate [FUNCTION] --filename=FILENAME [--ai] ...`
+
+  Generates an OpenAPI 3.0 specification. When the `--ai` flag is used, the system employs a sophisticated generation pipeline:
+
+  1.  **Few-Shot Prompting**: The generator loads Python/YAML pairs from the `examples/` directory to 
+        provide the LLM with context and desired patterns.
+  2.  **Validation Loop**: The generated YAML is passed through a two-stage validator:
+      *  **Syntax Check**: Ensures the output is valid YAML.
+      *  **Schema Check**: Uses `openapi-spec-validator` to ensure the output adheres to the 
+         OpenAPI 3.0 specification.
+  3.  **Self-Correction**: If validation fails, the error message is fed back to the LLM for automatic correction (up to 3 retries).
 
 ### Server Management
 The server is built on **FastAPI** and **Uvicorn**, providing asynchronous execution and high concurrency.
 
-`openapi server start YAML [NAME] [--port=PORT] [--host=HOST] [--fg]`
+* `openapi server start YAML [NAME] [--port=PORT] [--host=HOST] [--fg]`
 Starts the service. By default, it runs in the background.
-*   **Health Check**: Every started server includes a `/health` endpoint (e.g., `http://localhost:8080/health`) for monitoring.
-*   **PID Tracking**: The server writes its process ID to a `{name}.pid` file in the service directory for robust management.
 
-`openapi server ps [NAME]`
-Lists running servers by scanning for `.pid` files and verifying the process status.
+    *   **Health Check**: Every started server includes a `/health` endpoint (e.g., `http://localhost:8080/health`) for monitoring.
+    *   **PID Tracking**: The server writes its process ID to a `{name}.pid` file in the service directory for robust management.
 
-`openapi server stop NAME`
-Stops the server using the PID stored in the `.pid` file.
+* `openapi server ps [NAME]`
+  Lists running servers by scanning for `.pid` files and verifying the process status.
+
+* `openapi server stop NAME`
+  Stops the server using the PID stored in the `.pid` file.
 
 ### Service Merging & Documentation
-`openapi merge [SERVICES...] [--dir=DIR]`
-Combines multiple OpenAPI specifications into a single unified specification. It merges the `paths` and `components/schemas` sections.
 
-`openapi doc FILE --format=(txt|md) [--indent=INDENT]`
-Generates human-readable documentation from a single YAML file. Supports Markdown (`md`) and plain text (`txt`).
+* `openapi merge [SERVICES...] [--dir=DIR]`
+  Combines multiple OpenAPI specifications into a single unified specification. It merges the `paths` and `components/schemas` sections.
 
-`openapi doc [SERVICES...] [--dir=DIR]`
-Generates a combined documentation report for multiple services found in the specified directory.
+* `openapi doc FILE --format=(txt|md) [--indent=INDENT]`
+  Generates human-readable documentation from a single YAML file. Supports Markdown (`md`) and plain text (`txt`).
+
+* `openapi doc [SERVICES...] [--dir=DIR]`
+  Generates a combined documentation report for multiple services found in the specified directory.
 
 ### Security & Authentication
+
 The system supports multi-user Basic Authentication.
 *   **Storage**: Users are stored in `~/.cloudmesh/.auth_users.json`.
 *   **Hashing**: Passwords are not stored in plain text; they are hashed using **HMAC-SHA256** with a unique salt per user.
 *   **Configuration**: Use `--basic_auth=user:password` during generation to set up credentials.
 
 ### Containerization
+
 Generated services can be deployed as containers using the provided `Dockerfile` and `docker-compose.yaml`.
+
 1.  Build: `docker build -t cloudmesh-ai-openapi .`
 2.  Run: `docker-compose up -d`
 
 ### AI-Powered Testing
-`openapi test generate [FUNCTION] --filename=FILENAME --yamlfile=YAML`
-Generates a `pytest` suite by analyzing both the Python implementation and the OpenAPI spec. Tests are saved to `tests/ai-generated/`.
+
+* `openapi test generate [FUNCTION] --filename=FILENAME --yamlfile=YAML`
+  Generates a `pytest` suite by analyzing both the Python implementation and the OpenAPI spec. Tests are saved to `tests/ai-generated/`.
 
 ### AI Service Registry
+
 When a server starts, the system detects if it was AI-generated (via `config.yaml`) and registers `ai_generated` and `ai_model` metadata in the registry for discovery.
 
 ## Development & Build
