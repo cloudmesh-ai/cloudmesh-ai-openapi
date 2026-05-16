@@ -1,9 +1,0 @@
-&lt;svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32"&gt;
-  &lt;style&gt;
-    .logo-path { fill: #000000; }
-    @media (prefers-color-scheme: dark) {
-      .logo-path { fill: #ffffff; }
-    }
-  &lt;/style&gt;
-  &lt;path class="logo-path" d="M17.5,19c-3.037,0-5.5-2.463-5.5-5.5c0-0.105,0.004-0.208,0.012-0.31C11.31,13.11,10.5,12.6,9.5,12.5C8.1,12.4,6.8,13.1,6,14C4.5,13.2,3,12.5,1.5,12C1,12,0.5,12.1,0,12.3C0,12.3,0,15,2,17C4,19,7,19,10,19C11,19,12,19,13,18.8C14,19,15,19,16,19C17,19,17.5,19,17.5,19z" /&gt;
-&lt;/svg&gt;

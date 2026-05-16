@@ -33,6 +33,7 @@ dependencies = [
     "google-cloud-translate",
     "google-cloud-language",
     "msrest",
+    "cloudmesh-ai-theme",
 ]
 
 [tool.setuptools.dynamic]
